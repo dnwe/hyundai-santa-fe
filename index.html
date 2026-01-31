@@ -13,7 +13,8 @@
       --border: rgba(17,24,39,0.12);
       --shadow: 0 10px 30px rgba(0,0,0,0.08);
       --radius: 16px;
-      --accent: rgba(59,130,246,0.16);
+      --accentA: rgba(59,130,246,0.7);
+      --accentB: rgba(16,185,129,0.7);
     }
     [data-theme="dark"]{
       --bg:#0b1020;
@@ -22,7 +23,6 @@
       --muted:#cbd5e1;
       --border: rgba(255,255,255,0.14);
       --shadow: 0 12px 34px rgba(0,0,0,0.35);
-      --accent: rgba(59,130,246,0.22);
     }
     body{
       margin:0;
@@ -67,28 +67,44 @@
     }
     button{
       border: 1px solid var(--border);
-      background: var(--panel);
+      background: transparent;
       color: var(--text);
       border-radius: 999px;
       padding: 8px 10px;
       font-size: 12px;
       cursor: pointer;
-      box-shadow: var(--shadow);
     }
     button:hover{ filter: brightness(0.98); }
-    button.ghost{
-      background: transparent;
-      box-shadow: none;
+    button.primary{
+      background: var(--panel);
+      box-shadow: var(--shadow);
     }
     .hint{
       margin-top: 10px;
       font-size: 12px;
       color: var(--muted);
       line-height: 1.4;
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+      align-items: center;
     }
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pill b{ color: var(--text); }
     .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
 
-    main .wrap{ padding-top: 18px; padding-bottom: 20px; }
+    main .wrap{ padding-top: 18px; padding-bottom: 28px; }
 
     .grid{
       display:grid;
@@ -107,20 +123,19 @@
       min-height: 240px;
       cursor: zoom-in;
       user-select: none;
-      transition: transform 180ms ease, outline-color 180ms ease;
+      transition: transform 180ms ease, outline-color 180ms ease, box-shadow 180ms ease;
       outline: 2px solid transparent;
       outline-offset: 2px;
       position: relative;
     }
     .card:hover{ transform: translateY(-1px); }
-    .card.selectedA{ outline-color: rgba(59,130,246,0.65); }
-    .card.selectedB{ outline-color: rgba(16,185,129,0.65); }
+    .card.pickA{ outline-color: var(--accentA); box-shadow: 0 12px 36px rgba(59,130,246,0.12); }
+    .card.pickB{ outline-color: var(--accentB); box-shadow: 0 12px 36px rgba(16,185,129,0.12); }
 
     .badge{
       position: absolute;
       top: 10px;
       left: 10px;
-      background: rgba(0,0,0,0.55);
       color: #fff;
       font-size: 11px;
       padding: 4px 8px;
@@ -128,11 +143,6 @@
       display:none;
       pointer-events: none;
     }
-    .card.selectedA .badge{ display:inline-block; content:"A"; }
-    .card.selectedB .badge{ display:inline-block; }
-    .card.selectedA .badge{ background: rgba(59,130,246,0.75); }
-    .cardzif{}
-    .card.selectedB .badge{ background: rgba(16,185,129,0.75); }
 
     .imgWrap{
       position: relative;
@@ -160,10 +170,8 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .status{ font-size: 12px; color: var(--muted); margin-top: 2px; min-height: 16px; }
-    .bad{ color: #b91c1c; }
 
-    /* Zoom overlay */
+    /* Overlay base */
     .overlay{
       position: fixed;
       inset: 0;
@@ -171,10 +179,11 @@
       display:none;
       align-items:center;
       justify-content:center;
-      padding: 22px;
+      padding: 18px;
       z-index: 50;
     }
     .overlay.open{ display:flex; }
+
     .overlayCard{
       width: min(1300px, 98vw);
       background: var(--panel);
@@ -210,10 +219,8 @@
     .overlayTitle{ font-weight: 750; font-size: 14px; }
     .overlayHint{ color: var(--muted); font-size: 12px; }
 
-    .navBtn{
+    .navBtn, .closeBtn{
       position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
       border-radius: 999px;
       padding: 10px 12px;
       background: rgba(0,0,0,0.45);
@@ -222,85 +229,120 @@
       cursor: pointer;
       user-select:none;
     }
-    .navBtn:hover{ background: rgba(0,0,0,0.55); }
+    .navBtn:hover, .closeBtn:hover{ background: rgba(0,0,0,0.55); }
+    .navBtn{
+      top: 50%;
+      transform: translateY(-50%);
+    }
     .navLeft{ left: 10px; }
     .navRight{ right: 10px; }
+    .closeBtn{ top: 10px; right: 10px; padding: 8px 10px; }
 
-    .closeBtn{
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      border-radius: 999px;
-      padding: 8px 10px;
-      background: rgba(0,0,0,0.45);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.25);
-      cursor: pointer;
-    }
-
-    /* 2-up compare panel */
-    .compareBar{
-      position: sticky;
-      bottom: 0;
-      z-index: 9;
-      border-top: 1px solid var(--border);
-      background: linear-gradient(to top, rgba(255,255,255,0.72), rgba(255,255,255,0.32));
-      backdrop-filter: blur(10px);
-    }
-    [data-theme="dark"] .compareBar{
-      background: linear-gradient(to top, rgba(3,7,18,0.75), rgba(3,7,18,0.25));
-    }
-    .compareInner{
-      max-width: 1500px;
-      margin: 0 auto;
-      padding: 10px 16px 16px;
-      display:none;
-      gap: 12px;
-      align-items: stretch;
-    }
-    .compareInner.open{ display:grid; grid-template-columns: 1fr; }
-    .compareHeader{
-      display:flex; align-items:center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-      padding: 8px 6px 0;
-    }
-    .compareHeader .left{
-      display:flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
-    }
-    .pill{
-      font-size: 12px;
-      color: var(--muted);
+    /* Compare overlay */
+    .compareCard{
+      width: min(1500px, 98vw);
       background: var(--panel);
       border: 1px solid var(--border);
-      padding: 6px 10px;
-      border-radius: 999px;
-      box-shadow: var(--shadow);
-    }
-    .compareGrid{
-      display:grid;
-      grid-template-rows: 1fr 1fr;
-      gap: 12px;
-      margin-top: 10px;
-    }
-    .compareTile{
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 18px;
+      border-radius: 22px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.45);
       overflow:hidden;
-      box-shadow: var(--shadow);
-      display:flex;
-      flex-direction: column;
+      position: relative;
     }
-    .compareTop{
+    .compareTopbar{
       display:flex;
       justify-content: space-between;
-      align-items:center;
+      align-items: center;
       gap: 10px;
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .compareTopbar .left{
+      display:flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      font-size: 12px; color: var(--muted);
+    }
+    .compareTopbar .left b{ color: var(--text); }
+    .compareTopbar .right{ display:flex; gap: 8px; align-items:center; flex-wrap: wrap; }
+
+    .compareGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    @media (max-width: 900px){
+      .compareGrid{ grid-template-columns: 1fr; }
+    }
+    .pane{
+      position: relative;
+      border-right: 1px solid var(--border);
+    }
+    @media (max-width: 900px){
+      .pane{ border-right: none; border-bottom: 1px solid var(--border); }
+    }
+    .pane:last-child{ border-right: none; border-bottom: none; }
+
+    .paneHeader{
+      display:flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
       padding: 10px 12px;
       border-bottom: 1px solid var(--border);
     }
-    .compareLabel{ font-weight: 700; font-size: 13px; }
-    .compareSub{ font-size: 12px; color: var(--muted); }
-    .compareImgWrap{ aspect-ratio: 16/9; display:flex; align-items:center; justify-content:center; }
+    .paneHeader .tag{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      font-weight: 750;
+      font-size: 12px;
+    }
+    .dot{
+      width: 10px; height: 10px; border-radius: 999px;
+      background: var(--accentA);
+      display:inline-block;
+    }
+    .dot.b{ background: var(--accentB); }
+
+    .paneHeader .name{
+      font-weight: 700;
+      font-size: 12px;
+      margin: 0;
+      color: var(--text);
+    }
+    .paneHeader .sub{
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      max-width: 70ch;
+    }
+
+    .paneImgWrap{
+      aspect-ratio: 16/9;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .paneNav{
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px;
+    }
+    .paneNav.left{ left: 6px; }
+    .paneNav.right{ right: 6px; }
+    .paneNav button{
+      background: rgba(0,0,0,0.45);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: none;
+    }
+    .paneNav button:hover{ background: rgba(0,0,0,0.55); }
+
   </style>
 </head>
 
@@ -308,7 +350,7 @@
   <header>
     <div class="wrap">
       <div class="titleRow">
-        <h1>Hyundai Santa Fe — colour compare (UK labels, correct asset names)</h1>
+        <h1>Hyundai Santa Fe — colour compare (UK labels)</h1>
         <div class="controls">
           <div class="control">
             <label for="frame">Rotation frame</label>
@@ -331,14 +373,15 @@
               <option value="2000">2000</option>
             </select>
           </div>
-          <button id="toggleCompare" type="button" class="ghost">2-up compare: Off</button>
-          <button id="toggleTheme" type="button" class="ghost">Toggle background</button>
+          <button id="compareBtn" class="primary" type="button">2-up compare</button>
+          <button id="toggleTheme" type="button">Toggle background</button>
         </div>
       </div>
+
       <div class="hint">
-        Click a tile to zoom. In zoom: <span class="kbd">←</span>/<span class="kbd">→</span> to navigate, <span class="kbd">Esc</span> to close.
-        <br>
-        2-up compare mode: turn it on, then click one colour for <b>A</b> and another for <b>B</b> (shown top/bottom).
+        <span class="pill">Zoom: click a tile • <span class="kbd">←</span>/<span class="kbd">→</span> • <span class="kbd">Esc</span></span>
+        <span class="pill">2-up: click <b>2-up compare</b>, then pick colour <b>A</b> and <b>B</b></span>
+        <span class="pill" id="pickPill" style="display:none;"><b>Picking…</b> <span id="pickText">Select A</span></span>
       </div>
     </div>
   </header>
@@ -349,59 +392,75 @@
     </div>
   </main>
 
-  <!-- Zoom overlay -->
-  <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-label="Zoomed colour">
-    <div class="overlayCard" id="overlayCard">
-      <button class="closeBtn" id="closeBtn" title="Close (Esc)">✕</button>
-      <button class="navBtn navLeft" id="prevBtn" title="Previous (←)">←</button>
-      <button class="navBtn navRight" id="nextBtn" title="Next (→)">→</button>
-
+  <!-- Single zoom overlay -->
+  <div id="zoomOverlay" class="overlay" role="dialog" aria-modal="true" aria-label="Zoomed colour">
+    <div class="overlayCard">
+      <button class="closeBtn" id="zoomClose" title="Close (Esc)">✕</button>
+      <button class="navBtn navLeft" id="zoomPrev" title="Previous (←)">←</button>
+      <button class="navBtn navRight" id="zoomNext" title="Next (→)">→</button>
       <div class="overlayImgWrap">
-        <img id="overlayImg" alt="" />
+        <img id="zoomImg" alt="" />
       </div>
       <div class="overlayMeta">
-        <div class="overlayTitle" id="overlayTitle"></div>
-        <div class="overlayHint" id="overlayHint"></div>
+        <div class="overlayTitle" id="zoomTitle"></div>
+        <div class="overlayHint" id="zoomHint"></div>
       </div>
     </div>
   </div>
 
-  <!-- 2-up compare panel -->
-  <div class="compareBar">
-    <div class="compareInner" id="compareInner">
-      <div class="compareHeader">
+  <!-- 2-up compare overlay -->
+  <div id="compareOverlay" class="overlay" role="dialog" aria-modal="true" aria-label="Two-up comparison">
+    <div class="compareCard">
+      <button class="closeBtn" id="compareClose" title="Close (Esc)">✕</button>
+
+      <div class="compareTopbar">
         <div class="left">
-          <span class="pill"><b>2-up compare</b> (same frame)</span>
-          <span class="pill" id="compareSummary">Pick A and B</span>
+          <span><b>2-up compare</b></span>
+          <span id="compareMeta">Frame 002 • 1600px</span>
+          <span class="kbd">A: Q/W • B: O/P</span>
         </div>
         <div class="right">
-          <button id="swapAB" class="ghost" type="button">Swap A/B</button>
-          <button id="clearAB" class="ghost" type="button">Clear</button>
+          <button id="swapBtn" type="button">Swap</button>
+          <button id="repickBtn" type="button">Pick different colours</button>
         </div>
       </div>
 
       <div class="compareGrid">
-        <div class="compareTile">
-          <div class="compareTop">
-            <div>
-              <div class="compareLabel">A</div>
-              <div class="compareSub" id="labelA">Not selected</div>
+        <div class="pane">
+          <div class="paneHeader">
+            <div class="tag"><span class="dot"></span> A</div>
+            <div style="text-align:right;">
+              <div class="name" id="nameA">—</div>
+              <div class="sub" id="subA">←/→ controls: Q/W</div>
             </div>
           </div>
-          <div class="compareImgWrap">
+          <div class="paneImgWrap overlayImgWrap">
             <img id="imgA" alt="Compare A" />
+          </div>
+          <div class="paneNav left">
+            <button id="prevA" title="A previous (Q)">Q</button>
+          </div>
+          <div class="paneNav right">
+            <button id="nextA" title="A next (W)">W</button>
           </div>
         </div>
 
-        <div class="compareTile">
-          <div class="compareTop">
-            <div>
-              <div class="compareLabel">B</div>
-              <div class="compareSub" id="labelB">Not selected</div>
+        <div class="pane">
+          <div class="paneHeader">
+            <div class="tag"><span class="dot b"></span> B</div>
+            <div style="text-align:right;">
+              <div class="name" id="nameB">—</div>
+              <div class="sub" id="subB">←/→ controls: O/P</div>
             </div>
           </div>
-          <div class="compareImgWrap">
+          <div class="paneImgWrap overlayImgWrap">
             <img id="imgB" alt="Compare B" />
+          </div>
+          <div class="paneNav left">
+            <button id="prevB" title="B previous (O)">O</button>
+          </div>
+          <div class="paneNav right">
+            <button id="nextB" title="B next (P)">P</button>
           </div>
         </div>
       </div>
@@ -412,78 +471,18 @@
   // Fixed bit you said stays constant:
   const modelId = "52910NI000";
 
-  // For each colour:
-  // - displayName: UK label shown on the page
-  // - codeCandidates + assetNameCandidates: tried in order until one loads
-  //
-  // IMPORTANT: You told me Ecotronic Grey Pearl should map to:
-  //   HME_MX5_360_EXT_M2F-Magnetic+Gray_... ✅
-  //
-  // For the ones you reported failing (Typhoon Silver / Earthy Brass / Terracotta Orange),
-  // we now try common Hyundai variants (Metallic/Matte/Solid/etc.) automatically.
+  // UK display names + DEFINITELY CORRECT asset tokens you provided
+  // token format you gave: CODE_Asset_Name_With_Underscores (and sometimes suffixes like -17 / -15)
   const colours = [
-    {
-      displayName: "Cyber Sage Pearl",
-      codeCandidates: ["RS2"],
-      assetNameCandidates: ["Cyber Sage Pearl"]
-    },
-    {
-      displayName: "Creamy White Matte",
-      codeCandidates: ["WWM"],
-      assetNameCandidates: ["Creamy White Matte"]
-    },
-    {
-      displayName: "Abyss Black Pearl",
-      codeCandidates: ["A2B"],
-      assetNameCandidates: ["Abyss Black Pearl"]
-    },
-    {
-      displayName: "Ocado Green Pearl",
-      codeCandidates: ["RN2"],
-      assetNameCandidates: ["Ocado Green Pearl", "Olive Green Pearl"]
-    },
-    {
-      displayName: "Typhoon Silver", // UK label
-      codeCandidates: ["T2X"],
-      assetNameCandidates: [
-        "Typhoon Silver Metallic",
-        "Typhoon Silver",
-        "Typhoon Silver Pearl",
-        "Typhoon Silver Matte"
-      ]
-    },
-    {
-      displayName: "Ecotronic Grey Pearl", // UK label
-      codeCandidates: ["M2F"],
-      assetNameCandidates: ["Magnetic Gray"]
-    },
-    {
-      displayName: "Earthy Brass", // UK label
-      codeCandidates: ["YBM"],
-      assetNameCandidates: [
-        "Earthy Brass Metallic Matte",
-        "Earthy Brass Metallic Matt",
-        "Earthy Brass Matte",
-        "Earthy Brass Matt",
-        "Earthy Brass Metallic",
-        "Earthy Brass"
-      ]
-    },
-    {
-      displayName: "Terracotta Orange", // UK label
-      codeCandidates: ["ZGE"],
-      assetNameCandidates: [
-        "Terracotta Orange Solid",
-        "Terracotta Orange",
-        "Terra-cotta Orange",
-        "Terracotta Orange Metallic"
-      ]
-    },
-    {
-      displayName: "Pebble Blue Pearl",
-      codeCandidates: ["PB2"],
-      assetNameCandidates: ["Pebble Blue Pearl"]
-    },
+    { displayName: "Cyber Sage Pearl",      token: "RS2_Cyber_Sage_Pearl" },
+    { displayName: "Creamy White Matte",    token: "WWM_Creamy_White_Matte" },
+    { displayName: "Abyss Black Pearl",     token: "A2B_AbyssBlack_Black_Pearl-17" },
+    { displayName: "Ocado Green Pearl",     token: "RN2_Ocado_Green_Pearl" },
+    { displayName: "Terracotta Orange",     token: "ZGE_Terracotta_Orange_Solid" },
+    { displayName: "Earthy Brass",          token: "YBM_Earthy_Brass_Matte" },
+    { displayName: "Pebble Blue Pearl",     token: "PB2_Pebble_Blue_Pearl" },
+    { displayName: "Ecotronic Grey Pearl",  token: "PE2_Ecotronic_Gray_Pearl-15" },
+    { displayName: "Typhoon Silver",        token: "T2X_Typhoon_Silver_Metallic" },
   ];
 
   const els = {
@@ -492,160 +491,111 @@
     size: document.getElementById("size"),
     toggleTheme: document.getElementById("toggleTheme"),
 
-    overlay: document.getElementById("overlay"),
-    overlayCard: document.getElementById("overlayCard"),
-    overlayImg: document.getElementById("overlayImg"),
-    overlayTitle: document.getElementById("overlayTitle"),
-    overlayHint: document.getElementById("overlayHint"),
-    prevBtn: document.getElementById("prevBtn"),
-    nextBtn: document.getElementById("nextBtn"),
-    closeBtn: document.getElementById("closeBtn"),
+    pickPill: document.getElementById("pickPill"),
+    pickText: document.getElementById("pickText"),
+    compareBtn: document.getElementById("compareBtn"),
 
-    toggleCompare: document.getElementById("toggleCompare"),
-    compareInner: document.getElementById("compareInner"),
-    compareSummary: document.getElementById("compareSummary"),
-    labelA: document.getElementById("labelA"),
-    labelB: document.getElementById("labelB"),
+    // zoom
+    zoomOverlay: document.getElementById("zoomOverlay"),
+    zoomImg: document.getElementById("zoomImg"),
+    zoomTitle: document.getElementById("zoomTitle"),
+    zoomHint: document.getElementById("zoomHint"),
+    zoomPrev: document.getElementById("zoomPrev"),
+    zoomNext: document.getElementById("zoomNext"),
+    zoomClose: document.getElementById("zoomClose"),
+
+    // compare
+    compareOverlay: document.getElementById("compareOverlay"),
+    compareClose: document.getElementById("compareClose"),
+    compareMeta: document.getElementById("compareMeta"),
+    swapBtn: document.getElementById("swapBtn"),
+    repickBtn: document.getElementById("repickBtn"),
+    nameA: document.getElementById("nameA"),
+    nameB: document.getElementById("nameB"),
     imgA: document.getElementById("imgA"),
     imgB: document.getElementById("imgB"),
-    swapAB: document.getElementById("swapAB"),
-    clearAB: document.getElementById("clearAB"),
+    prevA: document.getElementById("prevA"),
+    nextA: document.getElementById("nextA"),
+    prevB: document.getElementById("prevB"),
+    nextB: document.getElementById("nextB"),
   };
 
   // state
   let zoomIndex = -1;
-  let compareMode = false;
-  let compareA = null; // index
-  let compareB = null; // index
+
+  let pickMode = false;   // user is selecting A then B
+  let pickStep = 0;       // 0 => selecting A, 1 => selecting B
+  let compareA = null;    // index
+  let compareB = null;    // index
+
+  function tokenToCodeAndAsset(token){
+    // Split on first underscore only: CODE_rest
+    const firstUnd = token.indexOf("_");
+    const code = token.slice(0, firstUnd);
+    const rest = token.slice(firstUnd + 1);     // e.g. "Typhoon_Silver_Metallic"
+    // Convert underscores to spaces; keep hyphen suffixes like "-17"
+    // Hyundai URLs shown earlier use + for spaces, so we output as "Typhoon+Silver+Metallic"
+    const assetWithSpaces = rest.replace(/_/g, " ");
+    return { code, assetWithSpaces };
+  }
 
   function encodePlus(str){
     return encodeURIComponent(str).replace(/%20/g, "+");
   }
 
-  function buildUrl(code, assetName, frame, wid){
-    const colourPart = `${code}-${encodePlus(assetName)}`;
+  function buildUrl(col, frame, wid){
+    const { code, assetWithSpaces } = tokenToCodeAndAsset(col.token);
+    const colourPart = `${code}-${encodePlus(assetWithSpaces)}`;
     const hei = Math.round(Number(wid) * 0.5625);
     return `https://dmassets.hyundai.com/is/image/hyundaiautoever/HME_MX5_360_EXT_${colourPart}_${modelId}_${frame}?wid=${wid}&hei=${hei}&fmt=png-alpha&fit=wrap,1`;
   }
 
-  // Try candidates until one loads; cache the working pair on the colour object.
-  function setImgWithFallback(imgEl, statusEl, colourObj){
-    const frame = els.frame.value;
-    const wid = els.size.value;
-
-    // if we already found a working pair, just use it
-    if (colourObj._working){
-      const {code, assetName} = colourObj._working;
-      imgEl.src = buildUrl(code, assetName, frame, wid);
-      if (statusEl) statusEl.textContent = "";
-      return;
-    }
-
-    // Build candidate list
-    const candidates = [];
-    for (const code of colourObj.codeCandidates){
-      for (const assetName of colourObj.assetNameCandidates){
-        candidates.push({code, assetName});
-      }
-    }
-
-    let i = 0;
-    const tryNext = () => {
-      if (i >= candidates.length){
-        if (statusEl){
-          statusEl.textContent = "Not found (tried several asset name variants).";
-          statusEl.classList.add("bad");
-        }
-        return;
-      }
-      const c = candidates[i++];
-      if (statusEl){
-        statusEl.textContent = `Loading… (${c.code}-${c.assetName})`;
-        statusEl.classList.remove("bad");
-      }
-
-      // We attach one-time handlers for this attempt
-      const onLoad = () => {
-        imgEl.removeEventListener("error", onError);
-        colourObj._working = c; // cache
-        if (statusEl) statusEl.textContent = "";
-        // also update any "code" label if present
-        if (colourObj._codeEl){
-          colourObj._codeEl.textContent = `${colourObj.displayName}  •  asset: ${c.code}-${c.assetName}  •  frame: ${frame}`;
-        }
-      };
-      const onError = () => {
-        imgEl.removeEventListener("load", onLoad);
-        tryNext();
-      };
-
-      imgEl.addEventListener("load", onLoad, { once: true });
-      imgEl.addEventListener("error", onError, { once: true });
-
-      imgEl.src = buildUrl(c.code, c.assetName, frame, wid);
-    };
-
-    tryNext();
-  }
-
-  function makeCard(colourObj, index){
+  function makeCard(col, idx){
     const card = document.createElement("div");
     card.className = "card";
     card.tabIndex = 0;
-    card.setAttribute("role","button");
-    card.setAttribute("aria-label", `Zoom ${colourObj.displayName}`);
+    card.setAttribute("role", "button");
 
     const badge = document.createElement("div");
     badge.className = "badge";
-    badge.textContent = "A";
     card.appendChild(badge);
 
     const imgWrap = document.createElement("div");
     imgWrap.className = "imgWrap";
 
     const img = document.createElement("img");
-    img.alt = `Hyundai Santa Fe – ${colourObj.displayName}`;
+    img.alt = `Hyundai Santa Fe – ${col.displayName}`;
 
     const meta = document.createElement("div");
     meta.className = "meta";
 
     const name = document.createElement("div");
     name.className = "name";
-    name.textContent = colourObj.displayName;
+    name.textContent = col.displayName;
 
     const code = document.createElement("div");
     code.className = "code";
-    code.textContent = `${colourObj.displayName}  •  frame: ${els.frame.value}`;
-
-    const status = document.createElement("div");
-    status.className = "status";
-    status.textContent = "Loading…";
-
-    colourObj._img = img;
-    colourObj._statusEl = status;
-    colourObj._codeEl = code;
-    colourObj._cardEl = card;
-    colourObj._badgeEl = badge;
+    code.textContent = col.token;
 
     imgWrap.appendChild(img);
     meta.appendChild(name);
     meta.appendChild(code);
-    meta.appendChild(status);
 
     card.appendChild(imgWrap);
     card.appendChild(meta);
 
-    const onActivate = () => {
-      if (compareMode){
-        handleComparePick(index);
-      } else {
-        openZoom(index);
-      }
+    col._img = img;
+    col._card = card;
+    col._badge = badge;
+
+    const activate = () => {
+      if (pickMode) handlePick(idx);
+      else openZoom(idx);
     };
 
-    card.addEventListener("click", onActivate);
+    card.addEventListener("click", activate);
     card.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onActivate(); }
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(); }
     });
 
     return card;
@@ -656,41 +606,49 @@
     const frag = document.createDocumentFragment();
     colours.forEach((c, idx) => frag.appendChild(makeCard(c, idx)));
     els.grid.appendChild(frag);
-    updateAll();
-    refreshCompareUI();
+    updateAllImages();
+    refreshPickUI();
   }
 
-  function updateAll(){
-    colours.forEach(c => setImgWithFallback(c._img, c._statusEl, c));
+  function updateAllImages(){
+    const frame = els.frame.value;
+    const wid = els.size.value;
 
-    // keep zoom image in sync if open
-    if (els.overlay.classList.contains("open") && zoomIndex >= 0){
+    colours.forEach(c => {
+      c._img.src = buildUrl(c, frame, wid);
+    });
+
+    if (els.zoomOverlay.classList.contains("open") && zoomIndex >= 0){
       const c = colours[zoomIndex];
-      setImgWithFallback(els.overlayImg, null, c);
-      const frame = els.frame.value;
-      els.overlayHint.textContent = `Frame ${frame} • ${els.size.value}px • ←/→ to navigate • Esc to close`;
-      els.overlayTitle.textContent = c.displayName;
+      els.zoomImg.src = buildUrl(c, frame, wid);
+      els.zoomTitle.textContent = c.displayName;
+      els.zoomHint.textContent = `Frame ${frame} • ${wid}px • ←/→ • Esc`;
     }
 
-    // keep compare in sync
-    refreshCompareUI(true);
+    if (els.compareOverlay.classList.contains("open") && compareA !== null && compareB !== null){
+      openCompareOverlay(compareA, compareB, true);
+    }
   }
 
   // ---- Zoom overlay with navigation ----
   function openZoom(index){
     zoomIndex = index;
     const c = colours[zoomIndex];
-    els.overlayTitle.textContent = c.displayName;
-    els.overlayHint.textContent = `Frame ${els.frame.value} • ${els.size.value}px • ←/→ to navigate • Esc to close`;
-    setImgWithFallback(els.overlayImg, null, c);
+    const frame = els.frame.value;
+    const wid = els.size.value;
 
-    els.overlay.classList.add("open");
+    els.zoomTitle.textContent = c.displayName;
+    els.zoomHint.textContent = `Frame ${frame} • ${wid}px • ←/→ • Esc`;
+    els.zoomImg.alt = `Hyundai Santa Fe – ${c.displayName} (zoomed)`;
+    els.zoomImg.src = buildUrl(c, frame, wid);
+
+    els.zoomOverlay.classList.add("open");
   }
 
   function closeZoom(){
-    els.overlay.classList.remove("open");
+    els.zoomOverlay.classList.remove("open");
     zoomIndex = -1;
-    els.overlayImg.src = "";
+    els.zoomImg.src = "";
   }
 
   function navZoom(dir){
@@ -699,133 +657,185 @@
     openZoom(zoomIndex);
   }
 
-  els.prevBtn.addEventListener("click", (e) => { e.stopPropagation(); navZoom(-1); });
-  els.nextBtn.addEventListener("click", (e) => { e.stopPropagation(); navZoom(+1); });
-  els.closeBtn.addEventListener("click", (e) => { e.stopPropagation(); closeZoom(); });
-
-  // click backdrop to close (but allow clicking buttons)
-  els.overlay.addEventListener("click", (e) => {
-    if (e.target === els.overlay) closeZoom();
+  els.zoomPrev.addEventListener("click", (e) => { e.stopPropagation(); navZoom(-1); });
+  els.zoomNext.addEventListener("click", (e) => { e.stopPropagation(); navZoom(+1); });
+  els.zoomClose.addEventListener("click", (e) => { e.stopPropagation(); closeZoom(); });
+  els.zoomOverlay.addEventListener("click", (e) => {
+    if (e.target === els.zoomOverlay) closeZoom();
   });
 
-  document.addEventListener("keydown", (e) => {
-    if (els.overlay.classList.contains("open")){
-      if (e.key === "Escape") closeZoom();
-      if (e.key === "ArrowLeft") navZoom(-1);
-      if (e.key === "ArrowRight") navZoom(+1);
-    }
-  });
-
-  // ---- 2-up compare mode ----
-  function setCompareMode(on){
-    compareMode = on;
-    els.toggleCompare.textContent = `2-up compare: ${compareMode ? "On" : "Off"}`;
-    els.compareInner.classList.toggle("open", compareMode);
-    if (!compareMode){
-      // clear selections highlight when leaving compare mode (keep actual state if you want; I clear for clarity)
-      compareA = null;
-      compareB = null;
-    }
-    refreshCompareUI();
+  // ---- 2-up compare: pick flow -> overlay ----
+  function startPick(){
+    pickMode = true;
+    pickStep = 0;
+    compareA = null;
+    compareB = null;
+    refreshPickUI();
   }
 
-  function handleComparePick(index){
-    // choose A then B; if both set, replace the older (A) first
-    if (compareA === null){
-      compareA = index;
-    } else if (compareB === null && index !== compareA){
-      compareB = index;
-    } else if (index === compareA){
-      compareA = null;
-    } else if (index === compareB){
-      compareB = null;
+  function cancelPick(){
+    pickMode = false;
+    pickStep = 0;
+    compareA = null;
+    compareB = null;
+    refreshPickUI();
+  }
+
+  function handlePick(idx){
+    if (pickStep === 0){
+      compareA = idx;
+      pickStep = 1;
     } else {
-      // both set and user picked a third: shift B->A, new->B
-      compareA = compareB;
-      compareB = index;
+      compareB = idx;
+      // If user picked same twice, treat as "try again"
+      if (compareB === compareA) {
+        compareB = null;
+        return;
+      }
+      pickMode = false;
+      pickStep = 0;
+      refreshPickUI();
+      openCompareOverlay(compareA, compareB, false);
     }
-    refreshCompareUI();
+    refreshPickUI();
   }
 
-  function refreshCompareUI(onlyImages=false){
-    // update card highlights + badges
+  function refreshPickUI(){
+    els.pickPill.style.display = pickMode ? "inline-flex" : "none";
+    els.pickText.textContent = pickMode ? (pickStep === 0 ? "Select A" : "Select B") : "";
+
     colours.forEach((c, idx) => {
-      const card = c._cardEl;
-      const badge = c._badgeEl;
-      if (!card) return;
+      c._card.classList.remove("pickA","pickB");
+      c._badge.style.display = "none";
 
-      card.classList.toggle("selectedA", compareMode && compareA === idx);
-      card.classList.toggle("selectedB", compareMode && compareB === idx);
+      if (!pickMode) return;
 
-      if (compareMode && compareA === idx){
-        badge.style.display = "inline-block";
-        badge.textContent = "A";
-        badge.style.background = "rgba(59,130,246,0.78)";
-      } else if (compareMode && compareB === idx){
-        badge.style.display = "inline-block";
-        badge.textContent = "B";
-        badge.style.background = "rgba(16,185,129,0.78)";
+      if (pickStep === 0){
+        // nothing chosen yet
       } else {
-        badge.style.display = "none";
+        // A chosen, guide B
+        if (compareA === idx){
+          c._card.classList.add("pickA");
+          c._badge.style.display = "inline-block";
+          c._badge.textContent = "A";
+          c._badge.style.background = "var(--accentA)";
+        } else {
+          c._card.classList.add("pickB");
+          c._badge.style.display = "inline-block";
+          c._badge.textContent = "B";
+          c._badge.style.background = "var(--accentB)";
+          c._badge.style.opacity = "0.0"; // hide on non-selected; keeps layout stable
+        }
       }
     });
-
-    if (!compareMode){
-      els.compareSummary.textContent = "Pick A and B";
-      els.labelA.textContent = "Not selected";
-      els.labelB.textContent = "Not selected";
-      els.imgA.src = "";
-      els.imgB.src = "";
-      return;
-    }
-
-    const frame = els.frame.value;
-
-    if (compareA !== null){
-      const cA = colours[compareA];
-      els.labelA.textContent = cA.displayName;
-      setImgWithFallback(els.imgA, null, cA);
-    } else if (!onlyImages){
-      els.labelA.textContent = "Not selected";
-      els.imgA.src = "";
-    }
-
-    if (compareB !== null){
-      const cB = colours[compareB];
-      els.labelB.textContent = cB.displayName;
-      setImgWithFallback(els.imgB, null, cB);
-    } else if (!onlyImages){
-      els.labelB.textContent = "Not selected";
-      els.imgB.src = "";
-    }
-
-    const aTxt = compareA !== null ? colours[compareA].displayName : "—";
-    const bTxt = compareB !== null ? colours[compareB].displayName : "—";
-    els.compareSummary.textContent = `A: ${aTxt}  •  B: ${bTxt}  •  frame ${frame}`;
   }
 
-  els.swapAB.addEventListener("click", () => {
+  function openCompareOverlay(aIdx, bIdx, keepOpen){
+    const frame = els.frame.value;
+    const wid = els.size.value;
+
+    const a = colours[aIdx];
+    const b = colours[bIdx];
+
+    els.compareMeta.textContent = `Frame ${frame} • ${wid}px`;
+
+    els.nameA.textContent = a.displayName;
+    els.nameB.textContent = b.displayName;
+
+    els.imgA.alt = `Compare A – ${a.displayName}`;
+    els.imgB.alt = `Compare B – ${b.displayName}`;
+
+    els.imgA.src = buildUrl(a, frame, wid);
+    els.imgB.src = buildUrl(b, frame, wid);
+
+    // show overlay if not already
+    if (!keepOpen) els.compareOverlay.classList.add("open");
+  }
+
+  function closeCompareOverlay(){
+    els.compareOverlay.classList.remove("open");
+  }
+
+  function swapCompare(){
     const t = compareA; compareA = compareB; compareB = t;
-    refreshCompareUI();
+    openCompareOverlay(compareA, compareB, true);
+  }
+
+  function stepA(dir){
+    compareA = (compareA + dir + colours.length) % colours.length;
+    if (compareA === compareB) compareA = (compareA + dir + colours.length) % colours.length;
+    openCompareOverlay(compareA, compareB, true);
+  }
+  function stepB(dir){
+    compareB = (compareB + dir + colours.length) % colours.length;
+    if (compareB === compareA) compareB = (compareB + dir + colours.length) % colours.length;
+    openCompareOverlay(compareA, compareB, true);
+  }
+
+  // Buttons
+  els.compareBtn.addEventListener("click", () => {
+    // if already picking, toggle off
+    if (pickMode) cancelPick();
+    else startPick();
   });
-  els.clearAB.addEventListener("click", () => {
-    compareA = null; compareB = null;
-    refreshCompareUI();
+
+  els.swapBtn.addEventListener("click", () => swapCompare());
+  els.repickBtn.addEventListener("click", () => {
+    closeCompareOverlay();
+    startPick();
+  });
+  els.compareClose.addEventListener("click", () => closeCompareOverlay());
+
+  els.prevA.addEventListener("click", (e) => { e.stopPropagation(); stepA(-1); });
+  els.nextA.addEventListener("click", (e) => { e.stopPropagation(); stepA(+1); });
+  els.prevB.addEventListener("click", (e) => { e.stopPropagation(); stepB(-1); });
+  els.nextB.addEventListener("click", (e) => { e.stopPropagation(); stepB(+1); });
+
+  els.compareOverlay.addEventListener("click", (e) => {
+    if (e.target === els.compareOverlay) closeCompareOverlay();
   });
 
   // ---- Controls ----
-  els.frame.addEventListener("change", () => {
-    // changing frame invalidates nothing; just reload with cached working asset pairs
-    updateAll();
-  });
-  els.size.addEventListener("change", updateAll);
+  els.frame.addEventListener("change", updateAllImages);
+  els.size.addEventListener("change", updateAllImages);
 
   els.toggleTheme.addEventListener("click", () => {
     const body = document.body;
     body.dataset.theme = body.dataset.theme === "dark" ? "light" : "dark";
   });
 
-  els.toggleCompare.addEventListener("click", () => setCompareMode(!compareMode));
+  // Keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    // While picking: Esc cancels pick
+    if (pickMode && e.key === "Escape"){
+      cancelPick();
+      return;
+    }
+
+    // Zoom overlay nav
+    if (els.zoomOverlay.classList.contains("open")){
+      if (e.key === "Escape") closeZoom();
+      if (e.key === "ArrowLeft") navZoom(-1);
+      if (e.key === "ArrowRight") navZoom(+1);
+      return;
+    }
+
+    // Compare overlay controls
+    if (els.compareOverlay.classList.contains("open")){
+      if (e.key === "Escape") closeCompareOverlay();
+
+      // A: Q/W, B: O/P
+      if (e.key.toLowerCase() === "q") stepA(-1);
+      if (e.key.toLowerCase() === "w") stepA(+1);
+      if (e.key.toLowerCase() === "o") stepB(-1);
+      if (e.key.toLowerCase() === "p") stepB(+1);
+
+      // Swap: S
+      if (e.key.toLowerCase() === "s") swapCompare();
+
+      return;
+    }
+  });
 
   render();
 </script>
