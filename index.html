@@ -60,7 +60,7 @@
       box-shadow: var(--shadow);
     }
     label{ font-size: 12px; color: var(--muted); }
-    select, input[type="number"]{
+    select{
       border: 1px solid var(--border);
       background: transparent;
       color: var(--text);
@@ -103,6 +103,12 @@
       display:flex;
       flex-direction: column;
       min-height: 240px;
+      cursor: zoom-in;
+      user-select: none;
+      transition: transform 180ms ease;
+    }
+    .card:hover{
+      transform: translateY(-1px);
     }
     .imgWrap{
       position: relative;
@@ -147,8 +153,58 @@
       margin-top: 2px;
       min-height: 16px;
     }
-    .bad{
-      color: #b91c1c;
+    .bad{ color: #b91c1c; }
+
+    /* Zoom overlay */
+    .overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 28px;
+      z-index: 50;
+    }
+    .overlay.open{ display:flex; }
+    .overlayCard{
+      width: min(1200px, 96vw);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.45);
+      overflow:hidden;
+      cursor: zoom-out;
+    }
+    .overlayImgWrap{
+      aspect-ratio: 16 / 9;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55), rgba(255,255,255,0) 60%),
+        linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.08));
+    }
+    [data-theme="dark"] .overlayImgWrap{
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%),
+        linear-gradient(135deg, rgba(255,255,255,0.06), rgba(0,0,0,0.30));
+    }
+    .overlayMeta{
+      padding: 14px 16px;
+      display:flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .overlayTitle{
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .overlayHint{
+      color: var(--muted);
+      font-size: 12px;
     }
   </style>
 </head>
@@ -156,7 +212,7 @@
   <header>
     <div class="wrap">
       <div class="titleRow">
-        <h1>Hyundai Santa Fe — colour compare (same rotation frame)</h1>
+        <h1>Hyundai Santa Fe — colour compare (UK names, same rotation frame)</h1>
         <div class="controls">
           <div class="control">
             <label for="frame">Rotation frame</label>
@@ -183,8 +239,8 @@
         </div>
       </div>
       <div class="hint">
-        Tip: if any tile shows “Not found”, Hyundai may be using a different 3-letter paint code for that colour on this model/market.
-        Edit the <code>colours</code> array in this file and refresh.
+        Click any colour tile to zoom. Click again (or press <code>Esc</code>) to close.
+        If a tile shows “Not found”, Hyundai may be using a different asset label or paint code for that colour.
       </div>
     </div>
   </header>
@@ -195,23 +251,38 @@
     </div>
   </main>
 
+  <!-- Zoom overlay -->
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-label="Zoomed colour">
+    <div class="overlayCard" id="overlayCard">
+      <div class="overlayImgWrap">
+        <img id="overlayImg" alt="" />
+      </div>
+      <div class="overlayMeta">
+        <div class="overlayTitle" id="overlayTitle"></div>
+        <div class="overlayHint" id="overlayHint"></div>
+      </div>
+    </div>
+  </div>
+
 <script>
-  // ---- EDIT THIS LIST IF NEEDED ----
-  // "code" is the 3-character prefix you saw (e.g. RS2-Cyber+Sage+Pearl).
-  // "name" must match the asset naming (spacing/case is usually fine, we URL-encode it).
+  // ---- UK display names + asset mapping ----
+  // displayName: what you see on the page (UK name)
+  // code/assetName: what Hyundai uses in the image URL
   const colours = [
-    { name: "Cyber Sage Pearl",          code: "RS2" },
-    { name: "Creamy White Matte",        code: "WWM" },
+    { displayName: "Cyber Sage Pearl",      code: "RS2", assetName: "Cyber Sage Pearl" },
+    { displayName: "Creamy White Matte",    code: "WWM", assetName: "Creamy White Matte" },
 
-    { name: "Abyss Black Pearl",         code: "A2B" },
-    { name: "Ocado Green Pearl",         code: "RN2" }, // UK site may label as "Olive Green Pearl"
-    { name: "Typhoon Silver Metallic",   code: "T2X" },
-    { name: "Magnetic Grey Metallic",    code: "TG3" },
-    { name: "Ecotronic Gray Pearl",      code: "PE2" },
+    { displayName: "Abyss Black Pearl",     code: "A2B", assetName: "Abyss Black Pearl" },
+    { displayName: "Ocado Green Pearl",     code: "RN2", assetName: "Ocado Green Pearl" },
+    { displayName: "Typhoon Silver",        code: "T2X", assetName: "Typhoon Silver" },
 
-    { name: "Terracotta Orange Solid",   code: "ZGE" }, // sometimes shown as "Terracotta Orange"
-    { name: "Earthy Brass Metallic",     code: "YBM" }, // often referred to as Earthy Brass (matte/metallic)
-    { name: "Pebble Blue Pearl",         code: "PB2" },
+    // IMPORTANT FIX:
+    // UK-facing name might be "Ecotronic Grey Pearl" but the asset is M2F-Magnetic Gray
+    { displayName: "Ecotronic Grey Pearl",  code: "M2F", assetName: "Magnetic Gray" },
+
+    { displayName: "Earthy Brass",          code: "YBM", assetName: "Earthy Brass" },
+    { displayName: "Terracotta Orange",     code: "ZGE", assetName: "Terracotta Orange" },
+    { displayName: "Pebble Blue Pearl",     code: "PB2", assetName: "Pebble Blue Pearl" },
   ];
 
   // Fixed bit you said stays constant:
@@ -222,38 +293,46 @@
     frame: document.getElementById("frame"),
     size: document.getElementById("size"),
     toggleTheme: document.getElementById("toggleTheme"),
+    overlay: document.getElementById("overlay"),
+    overlayCard: document.getElementById("overlayCard"),
+    overlayImg: document.getElementById("overlayImg"),
+    overlayTitle: document.getElementById("overlayTitle"),
+    overlayHint: document.getElementById("overlayHint"),
   };
 
   function encodePlus(str){
-    // Hyundai uses + for spaces in the asset name, so we format like that.
     return encodeURIComponent(str).replace(/%20/g, "+");
   }
 
-  function buildUrl({name, code}, frame, wid){
-    const colourPart = `${code}-${encodePlus(name)}`;
-    return `https://dmassets.hyundai.com/is/image/hyundaiautoever/HME_MX5_360_EXT_${colourPart}_${modelId}_${frame}?wid=${wid}&hei=${Math.round(wid*0.5625)}&fmt=png-alpha&fit=wrap,1`;
+  function buildUrl(col, frame, wid){
+    const colourPart = `${col.code}-${encodePlus(col.assetName)}`;
+    const hei = Math.round(Number(wid) * 0.5625);
+    return `https://dmassets.hyundai.com/is/image/hyundaiautoever/HME_MX5_360_EXT_${colourPart}_${modelId}_${frame}?wid=${wid}&hei=${hei}&fmt=png-alpha&fit=wrap,1`;
   }
 
   function makeCard(col){
     const card = document.createElement("div");
     card.className = "card";
+    card.tabIndex = 0;
+    card.setAttribute("role","button");
+    card.setAttribute("aria-label", `Zoom ${col.displayName}`);
 
     const imgWrap = document.createElement("div");
     imgWrap.className = "imgWrap";
 
     const img = document.createElement("img");
-    img.alt = `Hyundai Santa Fe – ${col.name}`;
+    img.alt = `Hyundai Santa Fe – ${col.displayName}`;
 
     const meta = document.createElement("div");
     meta.className = "meta";
 
     const name = document.createElement("div");
     name.className = "name";
-    name.textContent = col.name;
+    name.textContent = col.displayName;
 
     const code = document.createElement("div");
     code.className = "code";
-    code.textContent = `${col.code}  •  frame: ${els.frame.value}`;
+    code.textContent = `${col.displayName !== col.assetName ? `asset: ${col.code}-${col.assetName}` : col.code}  •  frame: ${els.frame.value}`;
 
     const status = document.createElement("div");
     status.className = "status";
@@ -265,8 +344,14 @@
     });
 
     img.addEventListener("error", () => {
-      status.textContent = "Not found (check paint code / name).";
+      status.textContent = "Not found (asset name/code mismatch).";
       status.classList.add("bad");
+    });
+
+    // click-to-zoom
+    card.addEventListener("click", () => openZoom(col));
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openZoom(col); }
     });
 
     imgWrap.appendChild(img);
@@ -277,7 +362,6 @@
     card.appendChild(imgWrap);
     card.appendChild(meta);
 
-    // store references for updates
     card._img = img;
     card._codeEl = code;
     card._col = col;
@@ -299,11 +383,54 @@
 
     [...els.grid.children].forEach(card => {
       const col = card._col;
-      card._codeEl.textContent = `${col.code}  •  frame: ${frame}`;
+      card._codeEl.textContent =
+        `${col.displayName !== col.assetName ? `asset: ${col.code}-${col.assetName}` : col.code}  •  frame: ${frame}`;
       card._img.src = buildUrl(col, frame, wid);
     });
+
+    // keep zoomed image in sync with frame/size if overlay is open
+    if (els.overlay.classList.contains("open") && els.overlay._col){
+      const col = els.overlay._col;
+      els.overlayImg.src = buildUrl(col, frame, wid);
+      els.overlayHint.textContent = `Frame ${frame} • ${wid}px wide • Click to close`;
+    }
   }
 
+  // ---- Zoom overlay ----
+  function openZoom(col){
+    // If already open for this colour, close it.
+    if (els.overlay.classList.contains("open") && els.overlay._col === col){
+      closeZoom();
+      return;
+    }
+
+    els.overlay._col = col;
+    els.overlayTitle.textContent = col.displayName;
+    els.overlayHint.textContent = `Frame ${els.frame.value} • ${els.size.value}px wide • Click to close`;
+    els.overlayImg.alt = `Hyundai Santa Fe – ${col.displayName} (zoomed)`;
+    els.overlayImg.src = buildUrl(col, els.frame.value, els.size.value);
+
+    els.overlay.classList.add("open");
+  }
+
+  function closeZoom(){
+    els.overlay.classList.remove("open");
+    els.overlay._col = null;
+    els.overlayImg.src = "";
+  }
+
+  // Close when clicking outside the card or on the zoomed card
+  els.overlay.addEventListener("click", (e) => {
+    if (e.target === els.overlay || e.target === els.overlayCard || els.overlayCard.contains(e.target)){
+      closeZoom();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && els.overlay.classList.contains("open")) closeZoom();
+  });
+
+  // ---- Controls ----
   els.frame.addEventListener("change", updateAll);
   els.size.addEventListener("change", updateAll);
 
@@ -312,7 +439,6 @@
     body.dataset.theme = body.dataset.theme === "dark" ? "light" : "dark";
   });
 
-  // Kick off
   render();
 </script>
 </body>
