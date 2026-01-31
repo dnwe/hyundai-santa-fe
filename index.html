@@ -145,6 +145,7 @@
       border-radius: 999px;
       display:none;
       pointer-events: none;
+      z-index: 2;
     }
 
     .imgWrap{
@@ -156,13 +157,27 @@
       background:
         radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55), rgba(255,255,255,0) 60%),
         linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.08));
+      overflow: hidden;
     }
     [data-theme="dark"] .imgWrap{
       background:
         radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%),
         linear-gradient(135deg, rgba(255,255,255,0.06), rgba(0,0,0,0.30));
     }
-    img{ width: 100%; height: 100%; object-fit: contain; transform: translateZ(0); }
+    .imgLayer{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit: contain;
+      transform: translateZ(0);
+      transition: opacity 280ms linear;
+      opacity: 0;
+    }
+    .imgLayer.visible{
+      opacity: 1;
+    }
+
     .meta{ padding: 12px 12px 14px; display:flex; flex-direction: column; gap: 6px; }
     .name{ font-weight: 650; font-size: 14px; line-height: 1.2; }
     .code{
@@ -197,6 +212,7 @@
       position: relative;
     }
     .overlayImgWrap{
+      position: relative;
       aspect-ratio: 16 / 9;
       display:flex;
       align-items:center;
@@ -204,6 +220,7 @@
       background:
         radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55), rgba(255,255,255,0) 60%),
         linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.08));
+      overflow:hidden;
     }
     [data-theme="dark"] .overlayImgWrap{
       background:
@@ -231,6 +248,7 @@
       border: 1px solid rgba(255,255,255,0.25);
       cursor: pointer;
       user-select:none;
+      z-index: 3;
     }
     .navBtn:hover, .closeBtn:hover{ background: rgba(0,0,0,0.55); }
     .navBtn{
@@ -321,10 +339,12 @@
     }
 
     .paneImgWrap{
+      position: relative;
       aspect-ratio: 16/9;
       display:flex;
       align-items:center;
       justify-content:center;
+      overflow:hidden;
     }
 
     .paneNav{
@@ -335,6 +355,7 @@
       flex-direction: column;
       gap: 8px;
       padding: 8px;
+      z-index: 3;
     }
     .paneNav.left{ left: 6px; }
     .paneNav.right{ right: 6px; }
@@ -357,16 +378,7 @@
         <div class="controls">
           <div class="control">
             <label for="frame">Rotation frame</label>
-            <select id="frame">
-              <option value="001">001</option>
-              <option value="002" selected>002</option>
-              <option value="003">003</option>
-              <option value="004">004</option>
-              <option value="005">005</option>
-              <option value="006">006</option>
-              <option value="007">007</option>
-              <option value="008">008</option>
-            </select>
+            <select id="frame"></select>
           </div>
 
           <div class="control">
@@ -396,6 +408,7 @@
       </div>
 
       <div class="hint">
+        <span class="pill">Smooth rotate: crossfade + preload • wraps <b>036 → 001</b> continuously</span>
         <span class="pill">Zoom: click a tile • <span class="kbd">←</span>/<span class="kbd">→</span> • <span class="kbd">Esc</span></span>
         <span class="pill">2-up: click <b>2-up compare</b>, then pick colour <b>A</b> and <b>B</b></span>
         <span class="pill" id="pickPill" style="display:none;"><b>Picking…</b> <span id="pickText">Select A</span> • <span class="kbd">Esc</span> to cancel</span>
@@ -415,9 +428,12 @@
       <button class="closeBtn" id="zoomClose" title="Close (Esc)">✕</button>
       <button class="navBtn navLeft" id="zoomPrev" title="Previous (←)">←</button>
       <button class="navBtn navRight" id="zoomNext" title="Next (→)">→</button>
-      <div class="overlayImgWrap">
-        <img id="zoomImg" alt="" />
+
+      <div class="overlayImgWrap" id="zoomImgWrap">
+        <img class="imgLayer" id="zoomLayerA" alt="" />
+        <img class="imgLayer" id="zoomLayerB" alt="" />
       </div>
+
       <div class="overlayMeta">
         <div class="overlayTitle" id="zoomTitle"></div>
         <div class="overlayHint" id="zoomHint"></div>
@@ -451,8 +467,9 @@
               <div class="sub" id="subA">Controls: Q/W</div>
             </div>
           </div>
-          <div class="paneImgWrap overlayImgWrap">
-            <img id="imgA" alt="Compare A" />
+          <div class="paneImgWrap overlayImgWrap" id="paneAWrap">
+            <img class="imgLayer" id="paneALayerA" alt="Compare A" />
+            <img class="imgLayer" id="paneALayerB" alt="Compare A" />
           </div>
           <div class="paneNav left">
             <button id="prevA" title="A previous (Q)">Q</button>
@@ -470,8 +487,9 @@
               <div class="sub" id="subB">Controls: O/P</div>
             </div>
           </div>
-          <div class="paneImgWrap overlayImgWrap">
-            <img id="imgB" alt="Compare B" />
+          <div class="paneImgWrap overlayImgWrap" id="paneBWrap">
+            <img class="imgLayer" id="paneBLayerA" alt="Compare B" />
+            <img class="imgLayer" id="paneBLayerB" alt="Compare B" />
           </div>
           <div class="paneNav left">
             <button id="prevB" title="B previous (O)">O</button>
@@ -486,29 +504,23 @@
 
 <script>
   const modelId = "52910NI000";
-  const frames = ["001","002","003","004","005","006","007","008"];
+  const TOTAL_FRAMES = 36;
+
+  const frames = Array.from({ length: TOTAL_FRAMES }, (_, i) =>
+    String(i + 1).padStart(3, "0")
+  );
 
   // UK displayName shown to the user.
   // paintCode + assetName are used ONLY to form the DM asset URL.
-  // (These are the corrected ones based on your message.)
   const colours = [
     { displayName: "Cyber Sage Pearl",      paintCode: "RS2", assetName: "Cyber Sage Pearl" },
     { displayName: "Creamy White Matte",    paintCode: "WWM", assetName: "Creamy White Matte" },
-
-    // FIX: drop "-17", use spaced name
     { displayName: "Abyss Black Pearl",     paintCode: "A2B", assetName: "Abyss Black Pearl" },
-
     { displayName: "Ocado Green Pearl",     paintCode: "RN2", assetName: "Ocado Green Pearl" },
     { displayName: "Terracotta Orange",     paintCode: "ZGE", assetName: "Terracotta Orange Solid" },
-
-    // FIX: Metallic, not Matte
     { displayName: "Earthy Brass",          paintCode: "YBM", assetName: "Earthy Brass Metallic" },
-
     { displayName: "Pebble Blue Pearl",     paintCode: "PB2", assetName: "Pebble Blue Pearl" },
-
-    // FIX: Ecotronic Grey Pearl maps to M2F-Magnetic Gray
     { displayName: "Ecotronic Grey Pearl",  paintCode: "M2F", assetName: "Magnetic Gray" },
-
     { displayName: "Typhoon Silver",        paintCode: "T2X", assetName: "Typhoon Silver Metallic" },
   ];
 
@@ -526,12 +538,13 @@
     compareBtn: document.getElementById("compareBtn"),
 
     zoomOverlay: document.getElementById("zoomOverlay"),
-    zoomImg: document.getElementById("zoomImg"),
     zoomTitle: document.getElementById("zoomTitle"),
     zoomHint: document.getElementById("zoomHint"),
     zoomPrev: document.getElementById("zoomPrev"),
     zoomNext: document.getElementById("zoomNext"),
     zoomClose: document.getElementById("zoomClose"),
+    zoomLayerA: document.getElementById("zoomLayerA"),
+    zoomLayerB: document.getElementById("zoomLayerB"),
 
     compareOverlay: document.getElementById("compareOverlay"),
     compareClose: document.getElementById("compareClose"),
@@ -540,12 +553,15 @@
     repickBtn: document.getElementById("repickBtn"),
     nameA: document.getElementById("nameA"),
     nameB: document.getElementById("nameB"),
-    imgA: document.getElementById("imgA"),
-    imgB: document.getElementById("imgB"),
     prevA: document.getElementById("prevA"),
     nextA: document.getElementById("nextA"),
     prevB: document.getElementById("prevB"),
     nextB: document.getElementById("nextB"),
+
+    paneALayerA: document.getElementById("paneALayerA"),
+    paneALayerB: document.getElementById("paneALayerB"),
+    paneBLayerA: document.getElementById("paneBLayerA"),
+    paneBLayerB: document.getElementById("paneBLayerB"),
   };
 
   // state
@@ -560,6 +576,11 @@
   let playing = false;
   let rotationTimer = null;
 
+  // Crossfade state for overlays
+  const zoomFade = { frontIsA: true };
+  const compareFadeA = { frontIsA: true };
+  const compareFadeB = { frontIsA: true };
+
   function encodePlus(str){
     return encodeURIComponent(str).replace(/%20/g, "+");
   }
@@ -568,6 +589,27 @@
     const colourPart = `${col.paintCode}-${encodePlus(col.assetName)}`;
     const hei = Math.round(Number(wid) * 0.5625);
     return `https://dmassets.hyundai.com/is/image/hyundaiautoever/HME_MX5_360_EXT_${colourPart}_${modelId}_${frame}?wid=${wid}&hei=${hei}&fmt=png-alpha&fit=wrap,1`;
+  }
+
+  function preload(src){
+    return new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(src);
+      im.onerror = reject;
+      im.src = src;
+    });
+  }
+
+  // Crossfade helper for a pair of stacked <img> layers
+  async function crossfadeTo(layerA, layerB, stateObj, nextSrc){
+    try { await preload(nextSrc); } catch {}
+    const front = stateObj.frontIsA ? layerA : layerB;
+    const back  = stateObj.frontIsA ? layerB : layerA;
+
+    back.src = nextSrc;
+    back.classList.add("visible");
+    front.classList.remove("visible");
+    stateObj.frontIsA = !stateObj.frontIsA;
   }
 
   function makeCard(col, idx){
@@ -583,8 +625,16 @@
     const imgWrap = document.createElement("div");
     imgWrap.className = "imgWrap";
 
-    const img = document.createElement("img");
-    img.alt = `Hyundai Santa Fe – ${col.displayName}`;
+    const layerA = document.createElement("img");
+    const layerB = document.createElement("img");
+    layerA.className = "imgLayer visible";
+    layerB.className = "imgLayer";
+
+    layerA.alt = `Hyundai Santa Fe – ${col.displayName}`;
+    layerB.alt = `Hyundai Santa Fe – ${col.displayName}`;
+
+    imgWrap.appendChild(layerA);
+    imgWrap.appendChild(layerB);
 
     const meta = document.createElement("div");
     meta.className = "meta";
@@ -597,16 +647,17 @@
     code.className = "code";
     code.textContent = `${col.paintCode}-${col.assetName}`;
 
-    imgWrap.appendChild(img);
     meta.appendChild(name);
     meta.appendChild(code);
 
     card.appendChild(imgWrap);
     card.appendChild(meta);
 
-    col._img = img;
     col._card = card;
     col._badge = badge;
+    col._layerA = layerA;
+    col._layerB = layerB;
+    col._fade = { frontIsA: true };
 
     const activate = () => {
       if (pickMode) handlePick(idx);
@@ -621,39 +672,85 @@
     return card;
   }
 
+  function populateFrameDropdown(){
+    els.frame.innerHTML = "";
+    frames.forEach(f => {
+      const opt = document.createElement("option");
+      opt.value = f;
+      opt.textContent = f;
+      els.frame.appendChild(opt);
+    });
+    els.frame.value = "002";
+  }
+
   function render(){
+    populateFrameDropdown();
+
     els.grid.innerHTML = "";
     const frag = document.createDocumentFragment();
     colours.forEach((c, idx) => frag.appendChild(makeCard(c, idx)));
     els.grid.appendChild(frag);
-    updateAllImages();
+
+    // initial load: set both layers quickly to avoid first-fade blankness
+    const frame = els.frame.value;
+    const wid = els.size.value;
+    colours.forEach(c => {
+      const src = buildUrl(c, frame, wid);
+      c._layerA.src = src;
+      c._layerB.src = src;
+      c._layerA.classList.add("visible");
+      c._layerB.classList.remove("visible");
+      c._fade.frontIsA = true;
+    });
+
+    updateOverlayHints();
     refreshPickUI();
     updatePlayButton();
   }
 
-  function updateAllImages(){
+  function updateOverlayHints(){
+    const frame = els.frame.value;
+    const wid = els.size.value;
+    els.compareMeta.textContent = `Frame ${frame} • ${wid}px`;
+    if (els.zoomOverlay.classList.contains("open") && zoomIndex >= 0){
+      els.zoomHint.textContent = `Frame ${frame} • ${wid}px • ←/→ • Esc`;
+    }
+  }
+
+  async function updateAllImagesSmooth(){
     const frame = els.frame.value;
     const wid = els.size.value;
 
-    colours.forEach(c => {
-      c._img.src = buildUrl(c, frame, wid);
-    });
+    // Grid crossfade
+    for (const c of colours){
+      const src = buildUrl(c, frame, wid);
+      crossfadeTo(c._layerA, c._layerB, c._fade, src);
+    }
 
+    // Zoom overlay crossfade if open
     if (els.zoomOverlay.classList.contains("open") && zoomIndex >= 0){
       const c = colours[zoomIndex];
-      els.zoomImg.src = buildUrl(c, frame, wid);
+      const src = buildUrl(c, frame, wid);
       els.zoomTitle.textContent = c.displayName;
+      crossfadeTo(els.zoomLayerA, els.zoomLayerB, zoomFade, src);
       els.zoomHint.textContent = `Frame ${frame} • ${wid}px • ←/→ • Esc`;
     }
 
+    // Compare overlay crossfade if open
     if (els.compareOverlay.classList.contains("open") && compareA !== null && compareB !== null){
-      openCompareOverlay(compareA, compareB, true);
+      const a = colours[compareA];
+      const b = colours[compareB];
+      els.nameA.textContent = a.displayName;
+      els.nameB.textContent = b.displayName;
+
+      crossfadeTo(els.paneALayerA, els.paneALayerB, compareFadeA, buildUrl(a, frame, wid));
+      crossfadeTo(els.paneBLayerA, els.paneBLayerB, compareFadeB, buildUrl(b, frame, wid));
     }
 
-    els.compareMeta.textContent = `Frame ${frame} • ${wid}px`;
+    updateOverlayHints();
   }
 
-  // ---- Rotation animation ----
+  // ---- Rotation animation (wraps 036 -> 001 continuously) ----
   function updatePlayButton(){
     els.playBtn.textContent = playing ? "⏸ Stop" : "▶ Rotate";
     els.playBtn.classList.toggle("playing", playing);
@@ -677,9 +774,10 @@
     rotationTimer = setInterval(() => {
       const current = els.frame.value;
       const idx = frames.indexOf(current);
+      // wraps smoothly: 036 -> 001
       const next = frames[(idx + 1) % frames.length];
       els.frame.value = next;
-      updateAllImages();
+      updateAllImagesSmooth();
     }, intervalMs);
   }
 
@@ -707,8 +805,14 @@
 
     els.zoomTitle.textContent = c.displayName;
     els.zoomHint.textContent = `Frame ${frame} • ${wid}px • ←/→ • Esc`;
-    els.zoomImg.alt = `Hyundai Santa Fe – ${c.displayName} (zoomed)`;
-    els.zoomImg.src = buildUrl(c, frame, wid);
+
+    // sync overlay layers to current frame immediately
+    const src = buildUrl(c, frame, wid);
+    els.zoomLayerA.src = src;
+    els.zoomLayerB.src = src;
+    els.zoomLayerA.classList.add("visible");
+    els.zoomLayerB.classList.remove("visible");
+    zoomFade.frontIsA = true;
 
     els.zoomOverlay.classList.add("open");
   }
@@ -716,7 +820,6 @@
   function closeZoom(){
     els.zoomOverlay.classList.remove("open");
     zoomIndex = -1;
-    els.zoomImg.src = "";
   }
 
   function navZoom(dir){
@@ -794,15 +897,24 @@
     const b = colours[bIdx];
 
     els.compareMeta.textContent = `Frame ${frame} • ${wid}px`;
-
     els.nameA.textContent = a.displayName;
     els.nameB.textContent = b.displayName;
 
-    els.imgA.alt = `Compare A – ${a.displayName}`;
-    els.imgB.alt = `Compare B – ${b.displayName}`;
+    // sync compare layers immediately to current frame
+    const srcA = buildUrl(a, frame, wid);
+    const srcB = buildUrl(b, frame, wid);
 
-    els.imgA.src = buildUrl(a, frame, wid);
-    els.imgB.src = buildUrl(b, frame, wid);
+    els.paneALayerA.src = srcA;
+    els.paneALayerB.src = srcA;
+    els.paneALayerA.classList.add("visible");
+    els.paneALayerB.classList.remove("visible");
+    compareFadeA.frontIsA = true;
+
+    els.paneBLayerA.src = srcB;
+    els.paneBLayerB.src = srcB;
+    els.paneBLayerA.classList.add("visible");
+    els.paneBLayerB.classList.remove("visible");
+    compareFadeB.frontIsA = true;
 
     if (!keepOpen) els.compareOverlay.classList.add("open");
   }
@@ -849,8 +961,23 @@
   });
 
   // ---- Controls ----
-  els.frame.addEventListener("change", updateAllImages);
-  els.size.addEventListener("change", updateAllImages);
+  els.frame.addEventListener("change", updateAllImagesSmooth);
+  els.size.addEventListener("change", () => {
+    // Reset layers quickly to avoid showing mismatched-res images mid-fade
+    const frame = els.frame.value;
+    const wid = els.size.value;
+    colours.forEach(c => {
+      const src = buildUrl(c, frame, wid);
+      c._layerA.src = src;
+      c._layerB.src = src;
+      c._layerA.classList.add("visible");
+      c._layerB.classList.remove("visible");
+      c._fade.frontIsA = true;
+    });
+    if (els.zoomOverlay.classList.contains("open") && zoomIndex >= 0) openZoom(zoomIndex);
+    if (els.compareOverlay.classList.contains("open") && compareA !== null && compareB !== null) openCompareOverlay(compareA, compareB, true);
+    updateOverlayHints();
+  });
 
   els.toggleTheme.addEventListener("click", () => {
     const body = document.body;
