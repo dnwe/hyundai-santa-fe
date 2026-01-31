@@ -174,9 +174,7 @@
       transition: opacity 280ms linear;
       opacity: 0;
     }
-    .imgLayer.visible{
-      opacity: 1;
-    }
+    .imgLayer.visible{ opacity: 1; }
 
     .meta{ padding: 12px 12px 14px; display:flex; flex-direction: column; gap: 6px; }
     .name{ font-weight: 650; font-size: 14px; line-height: 1.2; }
@@ -251,10 +249,7 @@
       z-index: 3;
     }
     .navBtn:hover, .closeBtn:hover{ background: rgba(0,0,0,0.55); }
-    .navBtn{
-      top: 50%;
-      transform: translateY(-50%);
-    }
+    .navBtn{ top: 50%; transform: translateY(-50%); }
     .navLeft{ left: 10px; }
     .navRight{ right: 10px; }
     .closeBtn{ top: 10px; right: 10px; padding: 8px 10px; }
@@ -345,6 +340,9 @@
       align-items:center;
       justify-content:center;
       overflow:hidden;
+      /* Enables drag gestures (pointer events) cleanly on mobile */
+      touch-action: none;
+      cursor: ew-resize;
     }
 
     .paneNav{
@@ -443,7 +441,7 @@
 
   <!-- 2-up compare overlay -->
   <div id="compareOverlay" class="overlay" role="dialog" aria-modal="true" aria-label="Two-up comparison">
-    <div class="compareCard">
+    <div class="compareCard" id="compareCard">
       <button class="closeBtn" id="compareClose" title="Close (Esc)">✕</button>
 
       <div class="compareTopbar">
@@ -451,11 +449,14 @@
           <span><b>2-up compare</b></span>
           <span id="compareMeta">Frame 002 • 1600px</span>
 
-          <!-- NEW: rotation dropdown inside compare overlay -->
           <div class="control" style="padding:6px 8px; box-shadow:none;">
             <label for="compareFrame" style="margin-right:6px;">Rotation</label>
             <select id="compareFrame"></select>
           </div>
+
+          <span class="pill" style="padding:6px 10px; box-shadow:none; border-color: var(--border);">
+            Drag on images to rotate
+          </span>
 
           <span class="kbd">A: Q/W • B: O/P</span>
         </div>
@@ -465,7 +466,7 @@
         </div>
       </div>
 
-      <div class="compareGrid">
+      <div class="compareGrid" id="compareGrid">
         <div class="pane">
           <div class="paneHeader">
             <div class="tag"><span class="dot"></span> A</div>
@@ -521,8 +522,6 @@
     return n < 10 ? String(n).padStart(3, "0") : String(n).padStart(4, "0");
   });
 
-  // UK displayName shown to the user.
-  // paintCode + assetName are used ONLY to form the DM asset URL.
   const colours = [
     { displayName: "Cyber Sage Pearl",      paintCode: "RS2", assetName: "Cyber Sage Pearl" },
     { displayName: "Creamy White Matte",    paintCode: "WWM", assetName: "Creamy White Matte" },
@@ -558,9 +557,11 @@
     zoomLayerB: document.getElementById("zoomLayerB"),
 
     compareOverlay: document.getElementById("compareOverlay"),
+    compareCard: document.getElementById("compareCard"),
+    compareGrid: document.getElementById("compareGrid"),
     compareClose: document.getElementById("compareClose"),
     compareMeta: document.getElementById("compareMeta"),
-    compareFrame: document.getElementById("compareFrame"), // NEW
+    compareFrame: document.getElementById("compareFrame"),
     swapBtn: document.getElementById("swapBtn"),
     repickBtn: document.getElementById("repickBtn"),
     nameA: document.getElementById("nameA"),
@@ -574,6 +575,8 @@
     paneALayerB: document.getElementById("paneALayerB"),
     paneBLayerA: document.getElementById("paneBLayerA"),
     paneBLayerB: document.getElementById("paneBLayerB"),
+    paneAWrap: document.getElementById("paneAWrap"),
+    paneBWrap: document.getElementById("paneBWrap"),
   };
 
   // state
@@ -612,7 +615,6 @@
     });
   }
 
-  // Crossfade helper for a pair of stacked <img> layers
   async function crossfadeTo(layerA, layerB, stateObj, nextSrc){
     try { await preload(nextSrc); } catch {}
     const front = stateObj.frontIsA ? layerA : layerB;
@@ -696,9 +698,8 @@
 
   function render(){
     populateDropdown(els.frame);
-    populateDropdown(els.compareFrame); // NEW
+    populateDropdown(els.compareFrame);
 
-    // default frame
     els.frame.value = "002";
     els.compareFrame.value = els.frame.value;
 
@@ -707,7 +708,7 @@
     colours.forEach((c, idx) => frag.appendChild(makeCard(c, idx)));
     els.grid.appendChild(frag);
 
-    // initial load: set both layers quickly to avoid first-fade blankness
+    // initial load
     const frame = els.frame.value;
     const wid = els.size.value;
     colours.forEach(c => {
@@ -722,6 +723,7 @@
     updateOverlayHints();
     refreshPickUI();
     updatePlayButton();
+    setupCompareDragRotate();
   }
 
   function updateOverlayHints(){
@@ -737,31 +739,27 @@
     const frame = els.frame.value;
     const wid = els.size.value;
 
-    // keep compare dropdown in sync with global frame
     els.compareFrame.value = frame;
 
-    // Grid crossfade
+    // Grid
     for (const c of colours){
-      const src = buildUrl(c, frame, wid);
-      crossfadeTo(c._layerA, c._layerB, c._fade, src);
+      crossfadeTo(c._layerA, c._layerB, c._fade, buildUrl(c, frame, wid));
     }
 
-    // Zoom overlay crossfade if open
+    // Zoom
     if (els.zoomOverlay.classList.contains("open") && zoomIndex >= 0){
       const c = colours[zoomIndex];
-      const src = buildUrl(c, frame, wid);
       els.zoomTitle.textContent = c.displayName;
-      crossfadeTo(els.zoomLayerA, els.zoomLayerB, zoomFade, src);
+      crossfadeTo(els.zoomLayerA, els.zoomLayerB, zoomFade, buildUrl(c, frame, wid));
       els.zoomHint.textContent = `Frame ${frame} • ${wid}px • ←/→ • Esc`;
     }
 
-    // Compare overlay crossfade if open
+    // Compare
     if (els.compareOverlay.classList.contains("open") && compareA !== null && compareB !== null){
       const a = colours[compareA];
       const b = colours[compareB];
       els.nameA.textContent = a.displayName;
       els.nameB.textContent = b.displayName;
-
       crossfadeTo(els.paneALayerA, els.paneALayerB, compareFadeA, buildUrl(a, frame, wid));
       crossfadeTo(els.paneBLayerA, els.paneBLayerB, compareFadeB, buildUrl(b, frame, wid));
     }
@@ -769,7 +767,7 @@
     updateOverlayHints();
   }
 
-  // ---- Rotation animation (wraps last -> first continuously) ----
+  // ---- Rotation animation ----
   function updatePlayButton(){
     els.playBtn.textContent = playing ? "⏸ Stop" : "▶ Rotate";
     els.playBtn.classList.toggle("playing", playing);
@@ -787,13 +785,11 @@
     updatePlayButton();
 
     const intervalMs = Number(els.speed.value);
-
     if (rotationTimer) clearInterval(rotationTimer);
 
     rotationTimer = setInterval(() => {
-      const current = els.frame.value;
-      const idx = frames.indexOf(current);
-      const next = frames[(idx + 1) % frames.length];
+      const idx = frames.indexOf(els.frame.value);
+      const next = frames[(idx + 1) % frames.length]; // wraps last -> first
       els.frame.value = next;
       updateAllImagesSmooth();
     }, intervalMs);
@@ -805,16 +801,10 @@
   }
 
   els.playBtn.addEventListener("click", toggleRotation);
+  els.speed.addEventListener("change", () => { if (playing) startRotation(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && playing) stopRotation(); });
 
-  els.speed.addEventListener("change", () => {
-    if (playing) startRotation();
-  });
-
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden && playing) stopRotation();
-  });
-
-  // ---- Zoom overlay with navigation ----
+  // ---- Zoom overlay ----
   function openZoom(index){
     zoomIndex = index;
     const c = colours[zoomIndex];
@@ -824,7 +814,6 @@
     els.zoomTitle.textContent = c.displayName;
     els.zoomHint.textContent = `Frame ${frame} • ${wid}px • ←/→ • Esc`;
 
-    // sync overlay layers to current frame immediately
     const src = buildUrl(c, frame, wid);
     els.zoomLayerA.src = src;
     els.zoomLayerB.src = src;
@@ -849,11 +838,9 @@
   els.zoomPrev.addEventListener("click", (e) => { e.stopPropagation(); navZoom(-1); });
   els.zoomNext.addEventListener("click", (e) => { e.stopPropagation(); navZoom(+1); });
   els.zoomClose.addEventListener("click", (e) => { e.stopPropagation(); closeZoom(); });
-  els.zoomOverlay.addEventListener("click", (e) => {
-    if (e.target === els.zoomOverlay) closeZoom();
-  });
+  els.zoomOverlay.addEventListener("click", (e) => { if (e.target === els.zoomOverlay) closeZoom(); });
 
-  // ---- 2-up compare: pick flow -> overlay ----
+  // ---- 2-up compare pick ----
   function startPick(){
     pickMode = true;
     pickStep = 0;
@@ -876,10 +863,7 @@
       pickStep = 1;
     } else {
       compareB = idx;
-      if (compareB === compareA) {
-        compareB = null;
-        return;
-      }
+      if (compareB === compareA) { compareB = null; return; }
       pickMode = false;
       pickStep = 0;
       refreshPickUI();
@@ -895,7 +879,6 @@
     colours.forEach((c, idx) => {
       c._card.classList.remove("pickA");
       c._badge.style.display = "none";
-
       if (!pickMode) return;
 
       if (pickStep === 1 && compareA === idx){
@@ -915,35 +898,26 @@
     const b = colours[bIdx];
 
     els.compareMeta.textContent = `Frame ${frame} • ${wid}px`;
-
-    // sync compare dropdown to current frame
     els.compareFrame.value = frame;
 
     els.nameA.textContent = a.displayName;
     els.nameB.textContent = b.displayName;
 
-    // sync compare layers immediately to current frame
     const srcA = buildUrl(a, frame, wid);
     const srcB = buildUrl(b, frame, wid);
 
-    els.paneALayerA.src = srcA;
-    els.paneALayerB.src = srcA;
-    els.paneALayerA.classList.add("visible");
-    els.paneALayerB.classList.remove("visible");
+    els.paneALayerA.src = srcA; els.paneALayerB.src = srcA;
+    els.paneALayerA.classList.add("visible"); els.paneALayerB.classList.remove("visible");
     compareFadeA.frontIsA = true;
 
-    els.paneBLayerA.src = srcB;
-    els.paneBLayerB.src = srcB;
-    els.paneBLayerA.classList.add("visible");
-    els.paneBLayerB.classList.remove("visible");
+    els.paneBLayerA.src = srcB; els.paneBLayerB.src = srcB;
+    els.paneBLayerA.classList.add("visible"); els.paneBLayerB.classList.remove("visible");
     compareFadeB.frontIsA = true;
 
     if (!keepOpen) els.compareOverlay.classList.add("open");
   }
 
-  function closeCompareOverlay(){
-    els.compareOverlay.classList.remove("open");
-  }
+  function closeCompareOverlay(){ els.compareOverlay.classList.remove("open"); }
 
   function swapCompare(){
     const t = compareA; compareA = compareB; compareB = t;
@@ -961,16 +935,9 @@
     openCompareOverlay(compareA, compareB, true);
   }
 
-  els.compareBtn.addEventListener("click", () => {
-    if (pickMode) cancelPick();
-    else startPick();
-  });
-
+  els.compareBtn.addEventListener("click", () => { if (pickMode) cancelPick(); else startPick(); });
   els.swapBtn.addEventListener("click", () => swapCompare());
-  els.repickBtn.addEventListener("click", () => {
-    closeCompareOverlay();
-    startPick();
-  });
+  els.repickBtn.addEventListener("click", () => { closeCompareOverlay(); startPick(); });
   els.compareClose.addEventListener("click", () => closeCompareOverlay());
 
   els.prevA.addEventListener("click", (e) => { e.stopPropagation(); stepA(-1); });
@@ -978,35 +945,28 @@
   els.prevB.addEventListener("click", (e) => { e.stopPropagation(); stepB(-1); });
   els.nextB.addEventListener("click", (e) => { e.stopPropagation(); stepB(+1); });
 
-  els.compareOverlay.addEventListener("click", (e) => {
-    if (e.target === els.compareOverlay) closeCompareOverlay();
-  });
+  els.compareOverlay.addEventListener("click", (e) => { if (e.target === els.compareOverlay) closeCompareOverlay(); });
 
-  // NEW: rotation dropdown inside compare overlay controls the global rotation frame
+  // Compare rotation dropdown controls global frame
   els.compareFrame.addEventListener("change", () => {
-    // if we're auto-rotating, stop (so user selection "sticks")
     if (playing) stopRotation();
     els.frame.value = els.compareFrame.value;
     updateAllImagesSmooth();
   });
 
-  // ---- Controls ----
+  // ---- Main controls ----
   els.frame.addEventListener("change", () => {
-    // keep compare dropdown in sync + update visuals
     els.compareFrame.value = els.frame.value;
     updateAllImagesSmooth();
   });
 
   els.size.addEventListener("change", () => {
-    // Reset layers quickly to avoid showing mismatched-res images mid-fade
     const frame = els.frame.value;
     const wid = els.size.value;
     colours.forEach(c => {
       const src = buildUrl(c, frame, wid);
-      c._layerA.src = src;
-      c._layerB.src = src;
-      c._layerA.classList.add("visible");
-      c._layerB.classList.remove("visible");
+      c._layerA.src = src; c._layerB.src = src;
+      c._layerA.classList.add("visible"); c._layerB.classList.remove("visible");
       c._fade.frontIsA = true;
     });
     if (els.zoomOverlay.classList.contains("open") && zoomIndex >= 0) openZoom(zoomIndex);
@@ -1015,19 +975,13 @@
   });
 
   els.toggleTheme.addEventListener("click", () => {
-    const body = document.body;
-    body.dataset.theme = body.dataset.theme === "dark" ? "light" : "dark";
+    document.body.dataset.theme = document.body.dataset.theme === "dark" ? "light" : "dark";
   });
 
-  // Keyboard shortcuts
+  // ---- Keyboard shortcuts ----
   document.addEventListener("keydown", (e) => {
-    // picking: Esc cancels
-    if (pickMode && e.key === "Escape"){
-      cancelPick();
-      return;
-    }
+    if (pickMode && e.key === "Escape"){ cancelPick(); return; }
 
-    // zoom overlay nav
     if (els.zoomOverlay.classList.contains("open")){
       if (e.key === "Escape") closeZoom();
       if (e.key === "ArrowLeft") navZoom(-1);
@@ -1035,21 +989,84 @@
       return;
     }
 
-    // compare overlay controls
     if (els.compareOverlay.classList.contains("open")){
       if (e.key === "Escape") closeCompareOverlay();
-
-      // A: Q/W, B: O/P
       if (e.key.toLowerCase() === "q") stepA(-1);
       if (e.key.toLowerCase() === "w") stepA(+1);
       if (e.key.toLowerCase() === "o") stepB(-1);
       if (e.key.toLowerCase() === "p") stepB(+1);
-
-      // swap: S
       if (e.key.toLowerCase() === "s") swapCompare();
       return;
     }
   });
+
+  // ---- Drag/gesture rotation in compare popup ----
+  function setupCompareDragRotate(){
+    const drag = {
+      active: false,
+      pointerId: null,
+      startX: 0,
+      startIdx: 0,
+      pxPerFrame: 18  // smaller = more sensitive rotation
+    };
+
+    function currentFrameIndex(){
+      return Math.max(0, frames.indexOf(els.frame.value));
+    }
+    function setFrameByIndex(idx){
+      const wrapped = ((idx % frames.length) + frames.length) % frames.length;
+      els.frame.value = frames[wrapped];
+      els.compareFrame.value = els.frame.value;
+      updateAllImagesSmooth();
+    }
+
+    function onDown(e){
+      if (!els.compareOverlay.classList.contains("open")) return;
+
+      // Only start drag if user pressed on one of the image panes (not the top bar controls)
+      const inPane = e.target && (e.target.closest("#paneAWrap") || e.target.closest("#paneBWrap"));
+      if (!inPane) return;
+
+      // Stop auto-rotate so gesture "sticks"
+      if (playing) stopRotation();
+
+      drag.active = true;
+      drag.pointerId = e.pointerId;
+      drag.startX = e.clientX;
+      drag.startIdx = currentFrameIndex();
+
+      // capture pointer so moves still work if you leave the element
+      try { inPane.setPointerCapture(e.pointerId); } catch {}
+      e.preventDefault();
+    }
+
+    function onMove(e){
+      if (!drag.active || e.pointerId !== drag.pointerId) return;
+      const dx = e.clientX - drag.startX;
+
+      // Convert horizontal movement into frame steps
+      const steps = Math.round(dx / drag.pxPerFrame);
+      setFrameByIndex(drag.startIdx + steps);
+
+      e.preventDefault();
+    }
+
+    function endDrag(e){
+      if (!drag.active) return;
+      if (drag.pointerId !== null && e.pointerId !== drag.pointerId) return;
+      drag.active = false;
+      drag.pointerId = null;
+    }
+
+    // Attach to both panes (works for mouse + touch via Pointer Events)
+    [els.paneAWrap, els.paneBWrap].forEach(el => {
+      el.addEventListener("pointerdown", onDown);
+      el.addEventListener("pointermove", onMove);
+      el.addEventListener("pointerup", endDrag);
+      el.addEventListener("pointercancel", endDrag);
+      el.addEventListener("pointerleave", endDrag);
+    });
+  }
 
   render();
 </script>
