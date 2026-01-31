@@ -79,6 +79,10 @@
       background: var(--panel);
       box-shadow: var(--shadow);
     }
+    button.playing{
+      outline: 2px solid rgba(34,197,94,0.55);
+      outline-offset: 2px;
+    }
     .hint{
       margin-top: 10px;
       font-size: 12px;
@@ -130,7 +134,6 @@
     }
     .card:hover{ transform: translateY(-1px); }
     .card.pickA{ outline-color: var(--accentA); box-shadow: 0 12px 36px rgba(59,130,246,0.12); }
-    .card.pickB{ outline-color: var(--accentB); box-shadow: 0 12px 36px rgba(16,185,129,0.12); }
 
     .badge{
       position: absolute;
@@ -342,7 +345,6 @@
       box-shadow: none;
     }
     .paneNav button:hover{ background: rgba(0,0,0,0.55); }
-
   </style>
 </head>
 
@@ -351,6 +353,7 @@
     <div class="wrap">
       <div class="titleRow">
         <h1>Hyundai Santa Fe — colour compare (UK labels)</h1>
+
         <div class="controls">
           <div class="control">
             <label for="frame">Rotation frame</label>
@@ -365,6 +368,7 @@
               <option value="008">008</option>
             </select>
           </div>
+
           <div class="control">
             <label for="size">Image width</label>
             <select id="size">
@@ -373,6 +377,19 @@
               <option value="2000">2000</option>
             </select>
           </div>
+
+          <button id="playBtn" class="primary" type="button">▶ Rotate</button>
+
+          <div class="control">
+            <label for="speed">Speed</label>
+            <select id="speed">
+              <option value="500">0.5s</option>
+              <option value="1000" selected>1s</option>
+              <option value="2000">2s</option>
+              <option value="5000">5s</option>
+            </select>
+          </div>
+
           <button id="compareBtn" class="primary" type="button">2-up compare</button>
           <button id="toggleTheme" type="button">Toggle background</button>
         </div>
@@ -381,7 +398,7 @@
       <div class="hint">
         <span class="pill">Zoom: click a tile • <span class="kbd">←</span>/<span class="kbd">→</span> • <span class="kbd">Esc</span></span>
         <span class="pill">2-up: click <b>2-up compare</b>, then pick colour <b>A</b> and <b>B</b></span>
-        <span class="pill" id="pickPill" style="display:none;"><b>Picking…</b> <span id="pickText">Select A</span></span>
+        <span class="pill" id="pickPill" style="display:none;"><b>Picking…</b> <span id="pickText">Select A</span> • <span class="kbd">Esc</span> to cancel</span>
       </div>
     </div>
   </header>
@@ -431,7 +448,7 @@
             <div class="tag"><span class="dot"></span> A</div>
             <div style="text-align:right;">
               <div class="name" id="nameA">—</div>
-              <div class="sub" id="subA">←/→ controls: Q/W</div>
+              <div class="sub" id="subA">Controls: Q/W</div>
             </div>
           </div>
           <div class="paneImgWrap overlayImgWrap">
@@ -450,7 +467,7 @@
             <div class="tag"><span class="dot b"></span> B</div>
             <div style="text-align:right;">
               <div class="name" id="nameB">—</div>
-              <div class="sub" id="subB">←/→ controls: O/P</div>
+              <div class="sub" id="subB">Controls: O/P</div>
             </div>
           </div>
           <div class="paneImgWrap overlayImgWrap">
@@ -468,21 +485,31 @@
   </div>
 
 <script>
-  // Fixed bit you said stays constant:
   const modelId = "52910NI000";
+  const frames = ["001","002","003","004","005","006","007","008"];
 
-  // UK display names + DEFINITELY CORRECT asset tokens you provided
-  // token format you gave: CODE_Asset_Name_With_Underscores (and sometimes suffixes like -17 / -15)
+  // UK displayName shown to the user.
+  // paintCode + assetName are used ONLY to form the DM asset URL.
+  // (These are the corrected ones based on your message.)
   const colours = [
-    { displayName: "Cyber Sage Pearl",      token: "RS2_Cyber_Sage_Pearl" },
-    { displayName: "Creamy White Matte",    token: "WWM_Creamy_White_Matte" },
-    { displayName: "Abyss Black Pearl",     token: "A2B_AbyssBlack_Black_Pearl-17" },
-    { displayName: "Ocado Green Pearl",     token: "RN2_Ocado_Green_Pearl" },
-    { displayName: "Terracotta Orange",     token: "ZGE_Terracotta_Orange_Solid" },
-    { displayName: "Earthy Brass",          token: "YBM_Earthy_Brass_Matte" },
-    { displayName: "Pebble Blue Pearl",     token: "PB2_Pebble_Blue_Pearl" },
-    { displayName: "Ecotronic Grey Pearl",  token: "PE2_Ecotronic_Gray_Pearl-15" },
-    { displayName: "Typhoon Silver",        token: "T2X_Typhoon_Silver_Metallic" },
+    { displayName: "Cyber Sage Pearl",      paintCode: "RS2", assetName: "Cyber Sage Pearl" },
+    { displayName: "Creamy White Matte",    paintCode: "WWM", assetName: "Creamy White Matte" },
+
+    // FIX: drop "-17", use spaced name
+    { displayName: "Abyss Black Pearl",     paintCode: "A2B", assetName: "Abyss Black Pearl" },
+
+    { displayName: "Ocado Green Pearl",     paintCode: "RN2", assetName: "Ocado Green Pearl" },
+    { displayName: "Terracotta Orange",     paintCode: "ZGE", assetName: "Terracotta Orange Solid" },
+
+    // FIX: Metallic, not Matte
+    { displayName: "Earthy Brass",          paintCode: "YBM", assetName: "Earthy Brass Metallic" },
+
+    { displayName: "Pebble Blue Pearl",     paintCode: "PB2", assetName: "Pebble Blue Pearl" },
+
+    // FIX: Ecotronic Grey Pearl maps to M2F-Magnetic Gray
+    { displayName: "Ecotronic Grey Pearl",  paintCode: "M2F", assetName: "Magnetic Gray" },
+
+    { displayName: "Typhoon Silver",        paintCode: "T2X", assetName: "Typhoon Silver Metallic" },
   ];
 
   const els = {
@@ -491,11 +518,13 @@
     size: document.getElementById("size"),
     toggleTheme: document.getElementById("toggleTheme"),
 
+    playBtn: document.getElementById("playBtn"),
+    speed: document.getElementById("speed"),
+
     pickPill: document.getElementById("pickPill"),
     pickText: document.getElementById("pickText"),
     compareBtn: document.getElementById("compareBtn"),
 
-    // zoom
     zoomOverlay: document.getElementById("zoomOverlay"),
     zoomImg: document.getElementById("zoomImg"),
     zoomTitle: document.getElementById("zoomTitle"),
@@ -504,7 +533,6 @@
     zoomNext: document.getElementById("zoomNext"),
     zoomClose: document.getElementById("zoomClose"),
 
-    // compare
     compareOverlay: document.getElementById("compareOverlay"),
     compareClose: document.getElementById("compareClose"),
     compareMeta: document.getElementById("compareMeta"),
@@ -523,29 +551,21 @@
   // state
   let zoomIndex = -1;
 
-  let pickMode = false;   // user is selecting A then B
-  let pickStep = 0;       // 0 => selecting A, 1 => selecting B
-  let compareA = null;    // index
-  let compareB = null;    // index
+  let pickMode = false;
+  let pickStep = 0;
+  let compareA = null;
+  let compareB = null;
 
-  function tokenToCodeAndAsset(token){
-    // Split on first underscore only: CODE_rest
-    const firstUnd = token.indexOf("_");
-    const code = token.slice(0, firstUnd);
-    const rest = token.slice(firstUnd + 1);     // e.g. "Typhoon_Silver_Metallic"
-    // Convert underscores to spaces; keep hyphen suffixes like "-17"
-    // Hyundai URLs shown earlier use + for spaces, so we output as "Typhoon+Silver+Metallic"
-    const assetWithSpaces = rest.replace(/_/g, " ");
-    return { code, assetWithSpaces };
-  }
+  // rotation animation state
+  let playing = false;
+  let rotationTimer = null;
 
   function encodePlus(str){
     return encodeURIComponent(str).replace(/%20/g, "+");
   }
 
   function buildUrl(col, frame, wid){
-    const { code, assetWithSpaces } = tokenToCodeAndAsset(col.token);
-    const colourPart = `${code}-${encodePlus(assetWithSpaces)}`;
+    const colourPart = `${col.paintCode}-${encodePlus(col.assetName)}`;
     const hei = Math.round(Number(wid) * 0.5625);
     return `https://dmassets.hyundai.com/is/image/hyundaiautoever/HME_MX5_360_EXT_${colourPart}_${modelId}_${frame}?wid=${wid}&hei=${hei}&fmt=png-alpha&fit=wrap,1`;
   }
@@ -575,7 +595,7 @@
 
     const code = document.createElement("div");
     code.className = "code";
-    code.textContent = col.token;
+    code.textContent = `${col.paintCode}-${col.assetName}`;
 
     imgWrap.appendChild(img);
     meta.appendChild(name);
@@ -608,6 +628,7 @@
     els.grid.appendChild(frag);
     updateAllImages();
     refreshPickUI();
+    updatePlayButton();
   }
 
   function updateAllImages(){
@@ -628,7 +649,54 @@
     if (els.compareOverlay.classList.contains("open") && compareA !== null && compareB !== null){
       openCompareOverlay(compareA, compareB, true);
     }
+
+    els.compareMeta.textContent = `Frame ${frame} • ${wid}px`;
   }
+
+  // ---- Rotation animation ----
+  function updatePlayButton(){
+    els.playBtn.textContent = playing ? "⏸ Stop" : "▶ Rotate";
+    els.playBtn.classList.toggle("playing", playing);
+  }
+
+  function stopRotation(){
+    playing = false;
+    if (rotationTimer) clearInterval(rotationTimer);
+    rotationTimer = null;
+    updatePlayButton();
+  }
+
+  function startRotation(){
+    playing = true;
+    updatePlayButton();
+
+    const intervalMs = Number(els.speed.value);
+
+    if (rotationTimer) clearInterval(rotationTimer);
+
+    rotationTimer = setInterval(() => {
+      const current = els.frame.value;
+      const idx = frames.indexOf(current);
+      const next = frames[(idx + 1) % frames.length];
+      els.frame.value = next;
+      updateAllImages();
+    }, intervalMs);
+  }
+
+  function toggleRotation(){
+    if (playing) stopRotation();
+    else startRotation();
+  }
+
+  els.playBtn.addEventListener("click", toggleRotation);
+
+  els.speed.addEventListener("change", () => {
+    if (playing) startRotation();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && playing) stopRotation();
+  });
 
   // ---- Zoom overlay with navigation ----
   function openZoom(index){
@@ -687,7 +755,6 @@
       pickStep = 1;
     } else {
       compareB = idx;
-      // If user picked same twice, treat as "try again"
       if (compareB === compareA) {
         compareB = null;
         return;
@@ -705,27 +772,16 @@
     els.pickText.textContent = pickMode ? (pickStep === 0 ? "Select A" : "Select B") : "";
 
     colours.forEach((c, idx) => {
-      c._card.classList.remove("pickA","pickB");
+      c._card.classList.remove("pickA");
       c._badge.style.display = "none";
 
       if (!pickMode) return;
 
-      if (pickStep === 0){
-        // nothing chosen yet
-      } else {
-        // A chosen, guide B
-        if (compareA === idx){
-          c._card.classList.add("pickA");
-          c._badge.style.display = "inline-block";
-          c._badge.textContent = "A";
-          c._badge.style.background = "var(--accentA)";
-        } else {
-          c._card.classList.add("pickB");
-          c._badge.style.display = "inline-block";
-          c._badge.textContent = "B";
-          c._badge.style.background = "var(--accentB)";
-          c._badge.style.opacity = "0.0"; // hide on non-selected; keeps layout stable
-        }
+      if (pickStep === 1 && compareA === idx){
+        c._card.classList.add("pickA");
+        c._badge.style.display = "inline-block";
+        c._badge.textContent = "A";
+        c._badge.style.background = "var(--accentA)";
       }
     });
   }
@@ -748,7 +804,6 @@
     els.imgA.src = buildUrl(a, frame, wid);
     els.imgB.src = buildUrl(b, frame, wid);
 
-    // show overlay if not already
     if (!keepOpen) els.compareOverlay.classList.add("open");
   }
 
@@ -772,9 +827,7 @@
     openCompareOverlay(compareA, compareB, true);
   }
 
-  // Buttons
   els.compareBtn.addEventListener("click", () => {
-    // if already picking, toggle off
     if (pickMode) cancelPick();
     else startPick();
   });
@@ -806,13 +859,13 @@
 
   // Keyboard shortcuts
   document.addEventListener("keydown", (e) => {
-    // While picking: Esc cancels pick
+    // picking: Esc cancels
     if (pickMode && e.key === "Escape"){
       cancelPick();
       return;
     }
 
-    // Zoom overlay nav
+    // zoom overlay nav
     if (els.zoomOverlay.classList.contains("open")){
       if (e.key === "Escape") closeZoom();
       if (e.key === "ArrowLeft") navZoom(-1);
@@ -820,7 +873,7 @@
       return;
     }
 
-    // Compare overlay controls
+    // compare overlay controls
     if (els.compareOverlay.classList.contains("open")){
       if (e.key === "Escape") closeCompareOverlay();
 
@@ -830,9 +883,8 @@
       if (e.key.toLowerCase() === "o") stepB(-1);
       if (e.key.toLowerCase() === "p") stepB(+1);
 
-      // Swap: S
+      // swap: S
       if (e.key.toLowerCase() === "s") swapCompare();
-
       return;
     }
   });
