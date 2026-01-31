@@ -506,9 +506,10 @@
   const modelId = "52910NI000";
   const TOTAL_FRAMES = 36;
 
-  const frames = Array.from({ length: TOTAL_FRAMES }, (_, i) =>
-    String(i + 1).padStart(3, "0")
-  );
+  const frames = Array.from({ length: TOTAL_FRAMES }, (_, i) => {
+    const n = i + 1;
+    return n < 10 ? String(n).padStart(3, "0") : String(n).padStart(4, "0");
+  });
 
   // UK displayName shown to the user.
   // paintCode + assetName are used ONLY to form the DM asset URL.
