@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hyundai Santa Fe – Colour Compare</title>
+  <style>
+    :root{
+      --bg: #f3f4f6;
+      --panel: rgba(255,255,255,0.85);
+      --text: #111827;
+      --muted: #6b7280;
+      --border: rgba(17,24,39,0.12);
+      --shadow: 0 10px 30px rgba(0,0,0,0.08);
+      --radius: 16px;
+    }
+    [data-theme="dark"]{
+      --bg:#0b1020;
+      --panel: rgba(17,24,39,0.72);
+      --text:#f9fafb;
+      --muted:#cbd5e1;
+      --border: rgba(255,255,255,0.14);
+      --shadow: 0 12px 34px rgba(0,0,0,0.35);
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--text);
+    }
+    header{
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(to bottom, rgba(255,255,255,0.65), rgba(255,255,255,0.25));
+      border-bottom: 1px solid var(--border);
+    }
+    [data-theme="dark"] header{
+      background: linear-gradient(to bottom, rgba(3,7,18,0.70), rgba(3,7,18,0.25));
+    }
+    .wrap{ max-width: 1400px; margin: 0 auto; padding: 16px; }
+    .titleRow{
+      display:flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    }
+    h1{
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: 0.2px;
+    }
+    .controls{
+      display:flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .control{
+      display:flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+    }
+    label{ font-size: 12px; color: var(--muted); }
+    select, input[type="number"]{
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-size: 12px;
+      outline: none;
+    }
+    button{
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    button:hover{ filter: brightness(0.98); }
+    .hint{
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    main .wrap{ padding-top: 18px; padding-bottom: 28px; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      align-items: stretch;
+    }
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction: column;
+      min-height: 240px;
+    }
+    .imgWrap{
+      position: relative;
+      aspect-ratio: 16 / 9;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55), rgba(255,255,255,0) 60%),
+        linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.08));
+    }
+    [data-theme="dark"] .imgWrap{
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%),
+        linear-gradient(135deg, rgba(255,255,255,0.06), rgba(0,0,0,0.30));
+    }
+    img{
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transform: translateZ(0);
+    }
+    .meta{
+      padding: 12px 12px 14px;
+      display:flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .name{
+      font-weight: 650;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+    .code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .status{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      min-height: 16px;
+    }
+    .bad{
+      color: #b91c1c;
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <header>
+    <div class="wrap">
+      <div class="titleRow">
+        <h1>Hyundai Santa Fe — colour compare (same rotation frame)</h1>
+        <div class="controls">
+          <div class="control">
+            <label for="frame">Rotation frame</label>
+            <select id="frame">
+              <option value="001">001</option>
+              <option value="002" selected>002</option>
+              <option value="003">003</option>
+              <option value="004">004</option>
+              <option value="005">005</option>
+              <option value="006">006</option>
+              <option value="007">007</option>
+              <option value="008">008</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="size">Image width</label>
+            <select id="size">
+              <option value="1200">1200</option>
+              <option value="1600" selected>1600</option>
+              <option value="2000">2000</option>
+            </select>
+          </div>
+          <button id="toggleTheme" type="button">Toggle background</button>
+        </div>
+      </div>
+      <div class="hint">
+        Tip: if any tile shows “Not found”, Hyundai may be using a different 3-letter paint code for that colour on this model/market.
+        Edit the <code>colours</code> array in this file and refresh.
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div id="grid" class="grid"></div>
+    </div>
+  </main>
+
+<script>
+  // ---- EDIT THIS LIST IF NEEDED ----
+  // "code" is the 3-character prefix you saw (e.g. RS2-Cyber+Sage+Pearl).
+  // "name" must match the asset naming (spacing/case is usually fine, we URL-encode it).
+  const colours = [
+    { name: "Cyber Sage Pearl",          code: "RS2" },
+    { name: "Creamy White Matte",        code: "WWM" },
+
+    { name: "Abyss Black Pearl",         code: "A2B" },
+    { name: "Ocado Green Pearl",         code: "RN2" }, // UK site may label as "Olive Green Pearl"
+    { name: "Typhoon Silver Metallic",   code: "T2X" },
+    { name: "Magnetic Grey Metallic",    code: "TG3" },
+    { name: "Ecotronic Gray Pearl",      code: "PE2" },
+
+    { name: "Terracotta Orange Solid",   code: "ZGE" }, // sometimes shown as "Terracotta Orange"
+    { name: "Earthy Brass Metallic",     code: "YBM" }, // often referred to as Earthy Brass (matte/metallic)
+    { name: "Pebble Blue Pearl",         code: "PB2" },
+  ];
+
+  // Fixed bit you said stays constant:
+  const modelId = "52910NI000";
+
+  const els = {
+    grid: document.getElementById("grid"),
+    frame: document.getElementById("frame"),
+    size: document.getElementById("size"),
+    toggleTheme: document.getElementById("toggleTheme"),
+  };
+
+  function encodePlus(str){
+    // Hyundai uses + for spaces in the asset name, so we format like that.
+    return encodeURIComponent(str).replace(/%20/g, "+");
+  }
+
+  function buildUrl({name, code}, frame, wid){
+    const colourPart = `${code}-${encodePlus(name)}`;
+    return `https://dmassets.hyundai.com/is/image/hyundaiautoever/HME_MX5_360_EXT_${colourPart}_${modelId}_${frame}?wid=${wid}&hei=${Math.round(wid*0.5625)}&fmt=png-alpha&fit=wrap,1`;
+  }
+
+  function makeCard(col){
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const imgWrap = document.createElement("div");
+    imgWrap.className = "imgWrap";
+
+    const img = document.createElement("img");
+    img.alt = `Hyundai Santa Fe – ${col.name}`;
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = col.name;
+
+    const code = document.createElement("div");
+    code.className = "code";
+    code.textContent = `${col.code}  •  frame: ${els.frame.value}`;
+
+    const status = document.createElement("div");
+    status.className = "status";
+    status.textContent = "Loading…";
+
+    img.addEventListener("load", () => {
+      status.textContent = "";
+      status.classList.remove("bad");
+    });
+
+    img.addEventListener("error", () => {
+      status.textContent = "Not found (check paint code / name).";
+      status.classList.add("bad");
+    });
+
+    imgWrap.appendChild(img);
+    meta.appendChild(name);
+    meta.appendChild(code);
+    meta.appendChild(status);
+
+    card.appendChild(imgWrap);
+    card.appendChild(meta);
+
+    // store references for updates
+    card._img = img;
+    card._codeEl = code;
+    card._col = col;
+
+    return card;
+  }
+
+  function render(){
+    els.grid.innerHTML = "";
+    const frag = document.createDocumentFragment();
+    colours.forEach(col => frag.appendChild(makeCard(col)));
+    els.grid.appendChild(frag);
+    updateAll();
+  }
+
+  function updateAll(){
+    const frame = els.frame.value;
+    const wid = els.size.value;
+
+    [...els.grid.children].forEach(card => {
+      const col = card._col;
+      card._codeEl.textContent = `${col.code}  •  frame: ${frame}`;
+      card._img.src = buildUrl(col, frame, wid);
+    });
+  }
+
+  els.frame.addEventListener("change", updateAll);
+  els.size.addEventListener("change", updateAll);
+
+  els.toggleTheme.addEventListener("click", () => {
+    const body = document.body;
+    body.dataset.theme = body.dataset.theme === "dark" ? "light" : "dark";
+  });
+
+  // Kick off
+  render();
+</script>
+</body>
+</html>
