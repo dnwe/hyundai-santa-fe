@@ -450,6 +450,13 @@
         <div class="left">
           <span><b>2-up compare</b></span>
           <span id="compareMeta">Frame 002 • 1600px</span>
+
+          <!-- NEW: rotation dropdown inside compare overlay -->
+          <div class="control" style="padding:6px 8px; box-shadow:none;">
+            <label for="compareFrame" style="margin-right:6px;">Rotation</label>
+            <select id="compareFrame"></select>
+          </div>
+
           <span class="kbd">A: Q/W • B: O/P</span>
         </div>
         <div class="right">
@@ -506,6 +513,9 @@
   const modelId = "52910NI000";
   const TOTAL_FRAMES = 36;
 
+  // IMPORTANT: mixed-width padding:
+  // 1–9  => 001..009
+  // 10+  => 0010..0036
   const frames = Array.from({ length: TOTAL_FRAMES }, (_, i) => {
     const n = i + 1;
     return n < 10 ? String(n).padStart(3, "0") : String(n).padStart(4, "0");
@@ -550,6 +560,7 @@
     compareOverlay: document.getElementById("compareOverlay"),
     compareClose: document.getElementById("compareClose"),
     compareMeta: document.getElementById("compareMeta"),
+    compareFrame: document.getElementById("compareFrame"), // NEW
     swapBtn: document.getElementById("swapBtn"),
     repickBtn: document.getElementById("repickBtn"),
     nameA: document.getElementById("nameA"),
@@ -673,19 +684,23 @@
     return card;
   }
 
-  function populateFrameDropdown(){
-    els.frame.innerHTML = "";
+  function populateDropdown(selectEl){
+    selectEl.innerHTML = "";
     frames.forEach(f => {
       const opt = document.createElement("option");
       opt.value = f;
       opt.textContent = f;
-      els.frame.appendChild(opt);
+      selectEl.appendChild(opt);
     });
-    els.frame.value = "002";
   }
 
   function render(){
-    populateFrameDropdown();
+    populateDropdown(els.frame);
+    populateDropdown(els.compareFrame); // NEW
+
+    // default frame
+    els.frame.value = "002";
+    els.compareFrame.value = els.frame.value;
 
     els.grid.innerHTML = "";
     const frag = document.createDocumentFragment();
@@ -722,6 +737,9 @@
     const frame = els.frame.value;
     const wid = els.size.value;
 
+    // keep compare dropdown in sync with global frame
+    els.compareFrame.value = frame;
+
     // Grid crossfade
     for (const c of colours){
       const src = buildUrl(c, frame, wid);
@@ -751,7 +769,7 @@
     updateOverlayHints();
   }
 
-  // ---- Rotation animation (wraps 036 -> 001 continuously) ----
+  // ---- Rotation animation (wraps last -> first continuously) ----
   function updatePlayButton(){
     els.playBtn.textContent = playing ? "⏸ Stop" : "▶ Rotate";
     els.playBtn.classList.toggle("playing", playing);
@@ -775,7 +793,6 @@
     rotationTimer = setInterval(() => {
       const current = els.frame.value;
       const idx = frames.indexOf(current);
-      // wraps smoothly: 036 -> 001
       const next = frames[(idx + 1) % frames.length];
       els.frame.value = next;
       updateAllImagesSmooth();
@@ -898,6 +915,10 @@
     const b = colours[bIdx];
 
     els.compareMeta.textContent = `Frame ${frame} • ${wid}px`;
+
+    // sync compare dropdown to current frame
+    els.compareFrame.value = frame;
+
     els.nameA.textContent = a.displayName;
     els.nameB.textContent = b.displayName;
 
@@ -961,8 +982,21 @@
     if (e.target === els.compareOverlay) closeCompareOverlay();
   });
 
+  // NEW: rotation dropdown inside compare overlay controls the global rotation frame
+  els.compareFrame.addEventListener("change", () => {
+    // if we're auto-rotating, stop (so user selection "sticks")
+    if (playing) stopRotation();
+    els.frame.value = els.compareFrame.value;
+    updateAllImagesSmooth();
+  });
+
   // ---- Controls ----
-  els.frame.addEventListener("change", updateAllImagesSmooth);
+  els.frame.addEventListener("change", () => {
+    // keep compare dropdown in sync + update visuals
+    els.compareFrame.value = els.frame.value;
+    updateAllImagesSmooth();
+  });
+
   els.size.addEventListener("change", () => {
     // Reset layers quickly to avoid showing mismatched-res images mid-fade
     const frame = els.frame.value;
